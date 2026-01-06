@@ -1,0 +1,22 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="WslPostgreTool.App"
+             RequestedThemeVariant="Light">
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+    
+    <Application.Resources>
+        <!-- 自定义颜色资源 -->
+        <SolidColorBrush x:Key="PrimaryColor" Color="#1E88E5"/>
+        <SolidColorBrush x:Key="PrimaryDarkColor" Color="#1976D2"/>
+        <SolidColorBrush x:Key="SuccessColor" Color="#43A047"/>
+        <SolidColorBrush x:Key="DangerColor" Color="#E53935"/>
+        <SolidColorBrush x:Key="BackgroundColor" Color="#F5F5F5"/>
+        <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#333333"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#666666"/>
+    </Application.Resources>
+</Application>
+

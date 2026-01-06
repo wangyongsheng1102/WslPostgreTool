@@ -1,0 +1,469 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WslPostgreTool.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
+        x:Class="WslPostgreTool.Views.MainView"
+        x:DataContext="{d:DesignInstance vm:MainViewModel, IsDesignTimeCreatable=False}"
+        Title="WSL PostgreSQL 管理ツール"
+        Width="1400" Height="900"
+        MinWidth="1000" MinHeight="700"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5">
+    
+    <Window.Styles>
+        <!-- 全局文本样式 -->
+        <Style Selector="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+        
+        <!-- 标题样式 -->
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#1E88E5"/>
+            <Setter Property="Margin" Value="0,0,0,20"/>
+        </Style>
+        
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#424242"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        
+        <!-- 按钮样式 -->
+        <Style Selector="Button">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#1E88E5"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <Style Selector="Button.primary:pointerover">
+            <Setter Property="Background" Value="#1976D2"/>
+        </Style>
+        
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#E53935"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <Style Selector="Button.danger:pointerover">
+            <Setter Property="Background" Value="#C62828"/>
+        </Style>
+        
+        <Style Selector="Button.success">
+            <Setter Property="Background" Value="#43A047"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <Style Selector="Button.success:pointerover">
+            <Setter Property="Background" Value="#388E3C"/>
+        </Style>
+        
+        <!-- 卡片样式 -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+        </Style>
+        
+        <!-- 输入框样式 -->
+        <Style Selector="TextBox, ComboBox">
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        
+        <!-- 进度条样式 -->
+        <Style Selector="ProgressBar">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- 顶部标题栏 -->
+        <Border Grid.Row="0" Background="#1E88E5" Padding="20,15">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="WSL PostgreSQL 管理ツール" 
+                          FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="v1.0" 
+                          FontSize="12" Foreground="#BBDEFB" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- タブコントロール -->
+        <TabControl Grid.Row="1" Margin="15">
+            <TabControl.Styles>
+                <Style Selector="TabItem">
+                    <Setter Property="Padding" Value="20,12"/>
+                    <Setter Property="FontSize" Value="15"/>
+                    <Setter Property="FontWeight" Value="Normal"/>
+                </Style>
+                <Style Selector="TabItem:selected">
+                    <Setter Property="Foreground" Value="#1E88E5"/>
+                </Style>
+            </TabControl.Styles>
+
+            <!-- DB設定タブ -->
+            <TabItem Header="📋 DB設定">
+                <ScrollViewer>
+                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Text="データベース接続設定" Classes="title"/>
+                        
+                        <!-- 操作按钮区域 -->
+                        <Border Grid.Row="1" Classes="card">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="➕ 接続を追加" 
+                                       Command="{Binding DbConfigViewModel.AddConnectionCommand}" 
+                                       Classes="primary"/>
+                                <Button Content="🔄 WSLリストを更新" 
+                                       Command="{Binding DbConfigViewModel.RefreshWslDistributionsCommand}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- 连接列表 -->
+                        <Border Grid.Row="2" Classes="card">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="接続一覧" Classes="section-title"/>
+                                <DataGrid Grid.Row="1" 
+                                         ItemsSource="{Binding DbConfigViewModel.Connections}" 
+                                         SelectedItem="{Binding DbConfigViewModel.SelectedConnection}" 
+                                         AutoGenerateColumns="False" 
+                                         CanUserAddRows="False" 
+                                         CanUserDeleteRows="False"
+                                         GridLinesVisibility="Horizontal"
+                                         HeadersVisibility="Column">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="設定名" Binding="{Binding ConfigurationName}" Width="*" MinWidth="120">
+                                            <DataGridTextColumn.HeaderStyle>
+                                                <Style Selector="DataGridColumnHeader">
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                    <Setter Property="Background" Value="#F5F5F5"/>
+                                                </Style>
+                                            </DataGridTextColumn.HeaderStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="ホスト" Binding="{Binding Host}" Width="*" MinWidth="100"/>
+                                        <DataGridTextColumn Header="ポート" Binding="{Binding Port}" Width="80"/>
+                                        <DataGridTextColumn Header="データベース" Binding="{Binding Database}" Width="*" MinWidth="100"/>
+                                        <DataGridTextColumn Header="ユーザー" Binding="{Binding User}" Width="*" MinWidth="100"/>
+                                        <DataGridTextColumn Header="パスワード" Binding="{Binding Password}" Width="*" MinWidth="100">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style Selector="TextBlock">
+                                                    <Setter Property="Text" Value="••••••"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn Header="WSLディストリビューション" Width="*" MinWidth="150">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ComboBox ItemsSource="{Binding $parent[Window].DataContext.DbConfigViewModel.WslDistributions}" 
+                                                             SelectedItem="{Binding WslDistro}"
+                                                             Margin="0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="操作" Width="100">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="🗑️ 削除" 
+                                                           Command="{Binding $parent[DataGrid].DataContext.DbConfigViewModel.RemoveConnectionCommand}" 
+                                                           CommandParameter="{Binding}"
+                                                           Classes="danger"
+                                                           Padding="8,4"
+                                                           FontSize="12"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- インポート・エクスポートタブ -->
+            <TabItem Header="📤 インポート・エクスポート">
+                <ScrollViewer>
+                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Text="データベースインポート・エクスポート" Classes="title"/>
+                        
+                        <!-- 连接选择 -->
+                        <Border Grid.Row="1" Classes="card">
+                            <Grid RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Text="接続選択" Classes="section-title"/>
+                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                                    <ComboBox Grid.Column="0" 
+                                             ItemsSource="{Binding ImportExportViewModel.Connections}" 
+                                             SelectedItem="{Binding ImportExportViewModel.SelectedConnection}" 
+                                             PlaceholderText="接続を選択してください"
+                                             Margin="0,0,10,0">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding ConfigurationName}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Button Grid.Column="1" 
+                                           Content="📋 テーブルリストを読み込み" 
+                                           Command="{Binding ImportExportViewModel.LoadTablesCommand}"
+                                           Classes="primary"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- 导出和导入区域 -->
+                        <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="0,0,0,15">
+                            <!-- 导出卡片 -->
+                            <Border Grid.Column="0" Classes="card" Margin="0,0,10,0">
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Text="📤 エクスポート" Classes="section-title"/>
+                                    <TextBox Grid.Row="1" 
+                                            Text="{Binding ImportExportViewModel.ExportFolderPath}" 
+                                            Watermark="エクスポートフォルダを選択してください" 
+                                            Margin="0,0,0,8"/>
+                                    <Button Grid.Row="2" 
+                                           Content="📁 フォルダを選択" 
+                                           Command="{Binding ImportExportViewModel.SelectExportFolderCommand}"
+                                           Classes="primary"
+                                           Margin="0,0,0,12"/>
+                                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,12">
+                                        <Button Content="✓ 全選択" 
+                                               Command="{Binding ImportExportViewModel.SelectAllTablesCommand}"
+                                               Margin="0,0,8,0"/>
+                                        <Button Content="✗ 全解除" 
+                                               Command="{Binding ImportExportViewModel.DeselectAllTablesCommand}"/>
+                                    </StackPanel>
+                                    <Button Grid.Row="4" 
+                                           Content="▶ エクスポート実行" 
+                                           Command="{Binding ImportExportViewModel.ExportTablesCommand}" 
+                                           IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
+                                           Classes="success"/>
+                                </Grid>
+                            </Border>
+                            
+                            <!-- 导入卡片 -->
+                            <Border Grid.Column="1" Classes="card" Margin="10,0,0,0">
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Text="📥 インポート" Classes="section-title"/>
+                                    <TextBox Grid.Row="1" 
+                                            Text="{Binding ImportExportViewModel.ImportFolderPath}" 
+                                            Watermark="インポートフォルダを選択してください" 
+                                            Margin="0,0,0,8"/>
+                                    <Button Grid.Row="2" 
+                                           Content="📁 フォルダを選択" 
+                                           Command="{Binding ImportExportViewModel.SelectImportFolderCommand}"
+                                           Classes="primary"
+                                           Margin="0,0,0,12"/>
+                                    <Button Grid.Row="3" 
+                                           Content="▶ インポート実行" 
+                                           Command="{Binding ImportExportViewModel.ImportTablesCommand}" 
+                                           IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
+                                           Classes="success"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                        
+                        <!-- 表格列表 -->
+                        <Border Grid.Row="3" Classes="card">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="テーブル一覧" Classes="section-title"/>
+                                <DataGrid Grid.Row="1" 
+                                         ItemsSource="{Binding ImportExportViewModel.Tables}" 
+                                         AutoGenerateColumns="False" 
+                                         MaxHeight="350"
+                                         GridLinesVisibility="Horizontal"
+                                         HeadersVisibility="Column">
+                                    <DataGrid.Columns>
+                                        <DataGridCheckBoxColumn Header="選択" Binding="{Binding IsSelected}" Width="60"/>
+                                        <DataGridTextColumn Header="スキーマ" Binding="{Binding SchemaName}" Width="120"/>
+                                        <DataGridTextColumn Header="テーブル名" Binding="{Binding TableName}" Width="*" MinWidth="200"/>
+                                        <DataGridTextColumn Header="行数" Binding="{Binding RowCount, StringFormat='{}{0:N0}'}" Width="120"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- 进度条 -->
+                        <Border Grid.Row="4" Classes="card" IsVisible="{Binding ImportExportViewModel.IsProcessing}">
+                            <Grid RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Text="処理中..." Classes="section-title"/>
+                                <ProgressBar Grid.Row="1" 
+                                            Value="{Binding ImportExportViewModel.ProgressValue}" 
+                                            Maximum="100"/>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- 日志区域 -->
+                        <Border Grid.Row="5" Classes="card" Margin="0,10,0,0">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="📝 ログ" Classes="section-title"/>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                                    <TextBlock Text="{Binding ImportExportViewModel.LogMessage}" 
+                                              TextWrapping="Wrap"
+                                              Foreground="#666666"
+                                              FontFamily="Consolas, Courier New, monospace"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- データ比較タブ -->
+            <TabItem Header="🔍 データ比較">
+                <ScrollViewer>
+                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Text="データベース比較" Classes="title"/>
+                        
+                        <!-- 连接选择 -->
+                        <Border Grid.Row="1" Classes="card">
+                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*">
+                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="接続選択" Classes="section-title" Margin="0,0,0,15"/>
+                                
+                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="旧データベース" FontWeight="Bold" Margin="0,0,0,8"/>
+                                    <ComboBox ItemsSource="{Binding CompareViewModel.Connections}" 
+                                             SelectedItem="{Binding CompareViewModel.OldConnection}" 
+                                             PlaceholderText="旧接続を選択してください">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding ConfigurationName}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                                
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="新データベース" FontWeight="Bold" Margin="0,0,0,8"/>
+                                    <ComboBox ItemsSource="{Binding CompareViewModel.Connections}" 
+                                             SelectedItem="{Binding CompareViewModel.NewConnection}" 
+                                             PlaceholderText="新接続を選択してください">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding ConfigurationName}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- 表格选择 -->
+                        <Border Grid.Row="2" Classes="card">
+                            <Grid RowDefinitions="Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Text="テーブル選択" Classes="section-title"/>
+                                <Button Grid.Row="1" 
+                                       Content="📋 テーブルリストを読み込み" 
+                                       Command="{Binding CompareViewModel.LoadTablesCommand}"
+                                       Classes="primary"
+                                       Margin="0,0,0,12"/>
+                                <ComboBox Grid.Row="2" 
+                                         ItemsSource="{Binding CompareViewModel.Tables}" 
+                                         SelectedItem="{Binding CompareViewModel.SelectedTable}" 
+                                         PlaceholderText="比較するテーブルを選択してください">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding FullName}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- 导出设置 -->
+                        <Border Grid.Row="3" Classes="card">
+                            <Grid RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Text="エクスポート設定" Classes="section-title"/>
+                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                                    <TextBox Grid.Column="0" 
+                                            Text="{Binding CompareViewModel.ExportFilePath}" 
+                                            Watermark="エクスポートファイルパス (.xlsx)" 
+                                            Margin="0,0,10,0"/>
+                                    <Button Grid.Column="1" 
+                                           Content="📁 ファイルを選択" 
+                                           Command="{Binding CompareViewModel.SelectExportFileCommand}"
+                                           Classes="primary"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- 执行按钮 -->
+                        <Border Grid.Row="4" Classes="card">
+                            <Button Content="▶ 比較実行" 
+                                   Command="{Binding CompareViewModel.CompareTablesCommand}" 
+                                   IsEnabled="{Binding !CompareViewModel.IsProcessing}"
+                                   Classes="success"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Center"
+                                   FontSize="16"
+                                   Padding="20,12"/>
+                        </Border>
+                        
+                        <!-- 进度条 -->
+                        <Border Grid.Row="5" Classes="card" IsVisible="{Binding CompareViewModel.IsProcessing}">
+                            <Grid RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Text="処理中..." Classes="section-title"/>
+                                <ProgressBar Grid.Row="1" 
+                                            Value="{Binding CompareViewModel.ProgressValue}" 
+                                            Maximum="100"/>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- 日志区域 -->
+                        <Border Grid.Row="6" Classes="card" Margin="0,10,0,0">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="📝 ログ" Classes="section-title"/>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="150">
+                                    <TextBlock Text="{Binding CompareViewModel.LogMessage}" 
+                                              TextWrapping="Wrap"
+                                              Foreground="#666666"
+                                              FontFamily="Consolas, Courier New, monospace"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- 底部日志区域 -->
+        <Border Grid.Row="2" 
+               Background="#FAFAFA" 
+               BorderBrush="#E0E0E0" 
+               BorderThickness="0,2,0,0" 
+               Padding="15,12"
+               MaxHeight="180">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" 
+                          Text="📋 システムログ" 
+                          FontWeight="Bold" 
+                          FontSize="13"
+                          Foreground="#666666"
+                          Margin="0,0,0,8"/>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding LogMessage}" 
+                              TextWrapping="Wrap"
+                              Foreground="#424242"
+                              FontFamily="Consolas, Courier New, monospace"
+                              FontSize="12"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
