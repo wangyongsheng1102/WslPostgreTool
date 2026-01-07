@@ -5,280 +5,395 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:WslPostgreTool.Converters"
-        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
+        mc:Ignorable="d"
+        d:DesignWidth="1400"
+        d:DesignHeight="900"
         x:Class="WslPostgreTool.Views.MainView"
-        x:DataType="vm:MainViewModel"
+        x:DataContext="{d:DesignInstance vm:MainViewModel, IsDesignTimeCreatable=False}"
         Title="WSL PostgreSQL 管理ツール"
-        Width="1400" Height="900"
-        MinWidth="1000" MinHeight="700"
+        Width="1400"
+        Height="900"
+        MinWidth="1000"
+        MinHeight="700"
         WindowStartupLocation="CenterScreen"
-        Background="#F5F5F5">
-    
-    <Window.DataContext>
-        <vm:MainViewModel/>
-    </Window.DataContext>
-    
+        Background="#F8F9FA">
+
     <Window.Resources>
         <converters:GreaterThanConverter x:Key="GreaterThanConverter"/>
         <converters:LessThanConverter x:Key="LessThanConverter"/>
+        <converters:SelectedCountConverter x:Key="SelectedCountConverter"/>
     </Window.Resources>
-    
+
     <Window.Styles>
         <!-- 全局文本样式 -->
         <Style Selector="TextBlock">
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Foreground" Value="#212529"/>
         </Style>
-        
+
         <!-- 标题样式 -->
         <Style Selector="TextBlock.title">
-            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#1E88E5"/>
-            <Setter Property="Margin" Value="0,0,0,20"/>
+            <Setter Property="Foreground" Value="#0D6EFD"/>
+            <Setter Property="Margin" Value="0,0,0,24"/>
         </Style>
-        
+
         <Style Selector="TextBlock.section-title">
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#424242"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
         </Style>
-        
+
         <!-- 按钮样式 -->
         <Style Selector="Button">
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="MinWidth" Value="120"/>
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        
+
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="#1E88E5"/>
+            <Setter Property="Background" Value="#0D6EFD"/>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
-        
+
         <Style Selector="Button.primary:pointerover">
-            <Setter Property="Background" Value="#1976D2"/>
+            <Setter Property="Background" Value="#0B5ED7"/>
         </Style>
-        
+
+        <Style Selector="Button.primary:pressed">
+            <Setter Property="Background" Value="#0A58CA"/>
+        </Style>
+
         <Style Selector="Button.danger">
-            <Setter Property="Background" Value="#E53935"/>
+            <Setter Property="Background" Value="#DC3545"/>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
-        
+
         <Style Selector="Button.danger:pointerover">
-            <Setter Property="Background" Value="#C62828"/>
+            <Setter Property="Background" Value="#BB2D3B"/>
         </Style>
-        
+
+        <Style Selector="Button.danger:pressed">
+            <Setter Property="Background" Value="#B02A37"/>
+        </Style>
+
         <Style Selector="Button.success">
-            <Setter Property="Background" Value="#43A047"/>
+            <Setter Property="Background" Value="#198754"/>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
-        
+
         <Style Selector="Button.success:pointerover">
-            <Setter Property="Background" Value="#388E3C"/>
+            <Setter Property="Background" Value="#157347"/>
         </Style>
-        
+
+        <Style Selector="Button.success:pressed">
+            <Setter Property="Background" Value="#146C43"/>
+        </Style>
+
         <!-- 卡片样式 -->
         <Style Selector="Border.card">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderBrush" Value="#DEE2E6"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Margin" Value="0,0,0,18"/>
         </Style>
-        
+
         <!-- 输入框样式 -->
         <Style Selector="TextBox, ComboBox">
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,14"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#CED4DA"/>
         </Style>
-        
+
+        <Style Selector="TextBox:focus, ComboBox:focus">
+            <Setter Property="BorderBrush" Value="#0D6EFD"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+
         <!-- 进度条样式 -->
         <Style Selector="ProgressBar">
-            <Setter Property="Height" Value="24"/>
-            <Setter Property="Margin" Value="0,0,0,12"/>
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Margin" Value="0,0,0,14"/>
+            <Setter Property="CornerRadius" Value="6"/>
         </Style>
-        
-        
+
+        <!-- Tab样式 -->
+        <Style Selector="TabItem">
+            <Setter Property="Padding" Value="24,14"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+        </Style>
+
+        <Style Selector="TabItem:selected">
+            <Setter Property="Foreground" Value="#0D6EFD"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- ListBox样式 -->
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#DEE2E6"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:selected">
+            <Setter Property="Background" Value="#E7F1FF"/>
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto">
         <!-- 顶部标题栏 -->
-        <Border Grid.Row="0" Background="#1E88E5" Padding="20,15">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="WSL PostgreSQL 管理ツール" 
-                          FontSize="20" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="v1.0" 
-                          FontSize="12" Foreground="#BBDEFB" VerticalAlignment="Center"/>
+        <Border Grid.Row="0"
+                Background="#0D6EFD"
+                Padding="24,18">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🗄️"
+                              FontSize="28"
+                              Margin="0,0,12,0"
+                              VerticalAlignment="Center"/>
+                    <TextBlock Text="WSL PostgreSQL 管理ツール"
+                              FontSize="22"
+                              FontWeight="Bold"
+                              Foreground="White"
+                              VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1"
+                          Text="v1.0"
+                          FontSize="13"
+                          Foreground="#B3D9FF"
+                          VerticalAlignment="Center"
+                          Margin="20,0,0,0"/>
+                <TextBlock Grid.Column="2"
+                          Text="{Binding Connections.Count, StringFormat='接続数: {0}'}"
+                          FontSize="13"
+                          Foreground="#B3D9FF"
+                          VerticalAlignment="Center"
+                          Margin="20,0,0,0"/>
             </Grid>
         </Border>
 
         <!-- タブコントロール -->
-        <TabControl Grid.Row="1" Margin="15">
-            <TabControl.Styles>
-                <Style Selector="TabItem">
-                    <Setter Property="Padding" Value="20,12"/>
-                    <Setter Property="FontSize" Value="15"/>
-                    <Setter Property="FontWeight" Value="Normal"/>
-                </Style>
-                <Style Selector="TabItem:selected">
-                    <Setter Property="Foreground" Value="#1E88E5"/>
-                </Style>
-            </TabControl.Styles>
-
+        <TabControl Grid.Row="1"
+                   Margin="18"
+                   Background="Transparent">
             <!-- DB設定タブ -->
             <TabItem Header="📋 DB設定">
                 <ScrollViewer>
-                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto">
-                        <TextBlock Grid.Row="0" Text="データベース接続設定" Classes="title"/>
-                        
+                    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0"
+                                  Text="データベース接続設定"
+                                  Classes="title"/>
+
                         <!-- 操作按钮区域 -->
                         <Border Grid.Row="1" Classes="card">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Connections.Count, StringFormat='连接数: {0}'}" 
-                                           Margin="0,0,20,0"
-                                           VerticalAlignment="Center"/>
-                                <Button Content="➕ 接続を追加" 
-                                        Command="{Binding DbConfigViewModel.AddConnectionCommand}" 
-                                        Classes="primary"/>
-                                <Button Content="🔄 WSLリストを更新" 
+                                <TextBlock Text="{Binding Connections.Count, StringFormat='接続数: {0}'}"
+                                          Margin="0,0,24,0"
+                                          VerticalAlignment="Center"
+                                          FontSize="15"
+                                          FontWeight="Medium"
+                                          Foreground="#6C757D"/>
+                                <Button Content="➕ 接続を追加"
+                                       Command="{Binding DbConfigViewModel.AddConnectionCommand}"
+                                       Classes="primary"/>
+                                <Button Content="🔄 WSLリストを更新"
                                        Command="{Binding DbConfigViewModel.RefreshWslDistributionsCommand}"/>
                             </StackPanel>
                         </Border>
-                        
+
+                        <!-- 连接列表 -->
                         <Border Grid.Row="2" Classes="card">
-    <Grid RowDefinitions="Auto,*">
-        <TextBlock Grid.Row="0" Text="接続一覧" Classes="section-title"/>
-        
-        <!-- 表头 -->
-        <Border Grid.Row="1" 
-                Background="#F5F5F5" 
-                Height="40" 
-                VerticalAlignment="Top"
-                Margin="0,0,0,10"
-                BorderBrush="#E0E0E0"
-                BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="150,120,80,120,120,120,150,100">
-                <TextBlock Grid.Column="0" Text="設定名" FontWeight="Bold" Margin="10,0"/>
-                <TextBlock Grid.Column="1" Text="ホスト" FontWeight="Bold" Margin="10,0"/>
-                <TextBlock Grid.Column="2" Text="ポート" FontWeight="Bold" Margin="10,0"/>
-                <TextBlock Grid.Column="3" Text="データベース" FontWeight="Bold" Margin="10,0"/>
-                <TextBlock Grid.Column="4" Text="ユーザー" FontWeight="Bold" Margin="10,0"/>
-                <TextBlock Grid.Column="5" Text="パスワード" FontWeight="Bold" Margin="10,0"/>
-                <TextBlock Grid.Column="6" Text="WSL" FontWeight="Bold" Margin="10,0"/>
-                <TextBlock Grid.Column="7" Text="操作" FontWeight="Bold" Margin="10,0"/>
-            </Grid>
-        </Border>
-        
-        <!-- 数据行 -->
-        <ScrollViewer Grid.Row="1" Margin="0,40,0,0">
-            <ItemsControl ItemsSource="{Binding DbConfigViewModel.Connections}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Margin="0,0,0,1" 
-                               Background="White" 
-                               BorderBrush="#E0E0E0" 
-                               BorderThickness="0,0,0,1"
-                               Padding="10,8">
-                            <Grid ColumnDefinitions="150,120,80,120,120,120,150,100">
-                                <!-- 設定名 -->
-                                <TextBox Grid.Column="0" 
-                                        Text="{Binding ConfigurationName, Mode=TwoWay}"
-                                        Margin="5,0"
-                                        BorderThickness="1"
-                                        BorderBrush="#CCCCCC"
-                                        Padding="8,6"
-                                        FontSize="13"/>
-                                
-                                <!-- ホスト -->
-                                <TextBox Grid.Column="1" 
-                                        Text="{Binding Host, Mode=TwoWay}"
-                                        Margin="5,0"
-                                        BorderThickness="1"
-                                        BorderBrush="#CCCCCC"
-                                        Padding="8,6"
-                                        FontSize="13"/>
-                                
-                                <!-- ポート -->
-                                <TextBox Grid.Column="2" 
-                                        Text="{Binding Port, Mode=TwoWay}"
-                                        Margin="5,0"
-                                        BorderThickness="1"
-                                        BorderBrush="#CCCCCC"
-                                        Padding="8,6"
-                                        FontSize="13"/>
-                                
-                                <!-- データベース -->
-                                <TextBox Grid.Column="3" 
-                                        Text="{Binding Database, Mode=TwoWay}"
-                                        Margin="5,0"
-                                        BorderThickness="1"
-                                        BorderBrush="#CCCCCC"
-                                        Padding="8,6"
-                                        FontSize="13"/>
-                                
-                                <!-- ユーザー -->
-                                <TextBox Grid.Column="4" 
-                                        Text="{Binding User, Mode=TwoWay}"
-                                        Margin="5,0"
-                                        BorderThickness="1"
-                                        BorderBrush="#CCCCCC"
-                                        Padding="8,6"
-                                        FontSize="13"/>
-                                
-                                <!-- パスワード -->
-                                <TextBox Grid.Column="5" 
-                                        Text="{Binding Password, Mode=TwoWay}"
-                                        Margin="5,0"
-                                        BorderThickness="1"
-                                        BorderBrush="#CCCCCC"
-                                        Padding="8,6"
-                                        FontSize="13"
-                                        UseFloatingWatermark="False">
-                                    <TextBox.Watermark>
-                                        <!-- <TextBlock Text="(optional)" Foreground="#999999"/> -->
-                                    </TextBox.Watermark>
-                                </TextBox>
-                                
-                                <!-- WSLディストリビューション -->
-                                <ComboBox Grid.Column="6" 
-                                         ItemsSource="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.WslDistributions}"
-                                         SelectedItem="{Binding WslDistro, Mode=TwoWay}"
-                                         Margin="5,0"
-                                         Padding="8,6"
-                                         FontSize="13">
-                                    <ComboBox.Styles>
-                                        <Style Selector="ComboBox">
-                                            <Setter Property="Background" Value="White"/>
-                                            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-                                        </Style>
-                                    </ComboBox.Styles>
-                                </ComboBox>
-                                
-                                <!-- 操作 -->
-                                <Button Grid.Column="7"
-                                       Content="🗑️ 削除" 
-                                       Command="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.RemoveConnectionCommand}" 
-                                       CommandParameter="{Binding}"
-                                       Classes="danger"
-                                       HorizontalAlignment="Left"
-                                       Padding="8,6"
-                                       FontSize="12"
-                                       Margin="5,0"/>
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0"
+                                          Text="接続一覧"
+                                          Classes="section-title"/>
+
+                                <!-- 表头 -->
+                                <Border Grid.Row="1"
+                                       Background="#F8F9FA"
+                                       Height="44"
+                                       VerticalAlignment="Top"
+                                       Margin="0,0,0,12"
+                                       BorderBrush="#DEE2E6"
+                                       BorderThickness="0,0,0,2"
+                                       CornerRadius="6,6,0,0">
+                                    <Grid ColumnDefinitions="150,120,80,120,120,120,150,100">
+                                        <TextBlock Grid.Column="0"
+                                                  Text="設定名"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                        <TextBlock Grid.Column="1"
+                                                  Text="ホスト"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                        <TextBlock Grid.Column="2"
+                                                  Text="ポート"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                        <TextBlock Grid.Column="3"
+                                                  Text="データベース"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                        <TextBlock Grid.Column="4"
+                                                  Text="ユーザー"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                        <TextBlock Grid.Column="5"
+                                                  Text="パスワード"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                        <TextBlock Grid.Column="6"
+                                                  Text="WSL"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                        <TextBlock Grid.Column="7"
+                                                  Text="操作"
+                                                  FontWeight="Bold"
+                                                  FontSize="13"
+                                                  Margin="12,0"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="#495057"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- 数据行 -->
+                                <ScrollViewer Grid.Row="1"
+                                            Margin="0,44,0,0"
+                                            VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding DbConfigViewModel.Connections}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,0,2"
+                                                       Background="White"
+                                                       BorderBrush="#E9ECEF"
+                                                       BorderThickness="0,0,0,1"
+                                                       Padding="12,10">
+                                                    <Grid ColumnDefinitions="150,120,80,120,120,120,150,100">
+                                                        <!-- 設定名 -->
+                                                        <TextBox Grid.Column="0"
+                                                                Text="{Binding ConfigurationName, Mode=TwoWay}"
+                                                                Margin="6,0"
+                                                                BorderThickness="1"
+                                                                BorderBrush="#CED4DA"
+                                                                Padding="10,8"
+                                                                FontSize="13"
+                                                                CornerRadius="4"/>
+
+                                                        <!-- ホスト -->
+                                                        <TextBox Grid.Column="1"
+                                                                Text="{Binding Host, Mode=TwoWay}"
+                                                                Margin="6,0"
+                                                                BorderThickness="1"
+                                                                BorderBrush="#CED4DA"
+                                                                Padding="10,8"
+                                                                FontSize="13"
+                                                                CornerRadius="4"/>
+
+                                                        <!-- ポート -->
+                                                        <TextBox Grid.Column="2"
+                                                                Text="{Binding Port, Mode=TwoWay}"
+                                                                Margin="6,0"
+                                                                BorderThickness="1"
+                                                                BorderBrush="#CED4DA"
+                                                                Padding="10,8"
+                                                                FontSize="13"
+                                                                CornerRadius="4"/>
+
+                                                        <!-- データベース -->
+                                                        <TextBox Grid.Column="3"
+                                                                Text="{Binding Database, Mode=TwoWay}"
+                                                                Margin="6,0"
+                                                                BorderThickness="1"
+                                                                BorderBrush="#CED4DA"
+                                                                Padding="10,8"
+                                                                FontSize="13"
+                                                                CornerRadius="4"/>
+
+                                                        <!-- ユーザー -->
+                                                        <TextBox Grid.Column="4"
+                                                                Text="{Binding User, Mode=TwoWay}"
+                                                                Margin="6,0"
+                                                                BorderThickness="1"
+                                                                BorderBrush="#CED4DA"
+                                                                Padding="10,8"
+                                                                FontSize="13"
+                                                                CornerRadius="4"/>
+
+                                                        <!-- パスワード -->
+                                                        <TextBox Grid.Column="5"
+                                                                Text="{Binding Password, Mode=TwoWay}"
+                                                                Margin="6,0"
+                                                                BorderThickness="1"
+                                                                BorderBrush="#CED4DA"
+                                                                Padding="10,8"
+                                                                FontSize="13"
+                                                                CornerRadius="4"/>
+
+                                                        <!-- WSLディストリビューション -->
+                                                        <ComboBox Grid.Column="6"
+                                                                 ItemsSource="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.WslDistributions}"
+                                                                 SelectedItem="{Binding WslDistro, Mode=TwoWay}"
+                                                                 Margin="6,0"
+                                                                 Padding="10,8"
+                                                                 FontSize="13"
+                                                                 CornerRadius="4"/>
+
+                                                        <!-- 操作 -->
+                                                        <Button Grid.Column="7"
+                                                               Content="🗑️ 削除"
+                                                               Command="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.RemoveConnectionCommand}"
+                                                               CommandParameter="{Binding}"
+                                                               Classes="danger"
+                                                               HorizontalAlignment="Left"
+                                                               Padding="10,8"
+                                                               FontSize="12"
+                                                               Margin="6,0"
+                                                               MinWidth="80"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
                             </Grid>
                         </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
-    </Grid>
-</Border>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
@@ -286,111 +401,130 @@
             <!-- インポート・エクスポートタブ -->
             <TabItem Header="📤 インポート・エクスポート">
                 <ScrollViewer>
-                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                        <TextBlock Grid.Row="0" Text="データベースインポート・エクスポート" Classes="title"/>
-                        
+                    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0"
+                                  Text="データベースインポート・エクスポート"
+                                  Classes="title"/>
+
                         <!-- 连接选择 -->
                         <Border Grid.Row="1" Classes="card">
                             <Grid RowDefinitions="Auto,Auto">
-                                <TextBlock Grid.Row="0" Text="接続選択" Classes="section-title"/>
+                                <TextBlock Grid.Row="0"
+                                          Text="接続選択"
+                                          Classes="section-title"/>
                                 <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-                                    <ComboBox Grid.Column="0" 
-                                             ItemsSource="{Binding ImportExportViewModel.Connections}" 
-                                             SelectedItem="{Binding ImportExportViewModel.SelectedConnection}" 
+                                    <ComboBox Grid.Column="0"
+                                             ItemsSource="{Binding ImportExportViewModel.Connections}"
+                                             SelectedItem="{Binding ImportExportViewModel.SelectedConnection}"
                                              PlaceholderText="接続を選択してください"
-                                             Margin="0,0,10,0">
+                                             Margin="0,0,12,0">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding ConfigurationName}"/>
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <Button Grid.Column="1" 
-                                           Content="📋 テーブルリストを読み込み" 
+                                    <Button Grid.Column="1"
+                                           Content="📋 テーブルリストを読み込み"
                                            Command="{Binding ImportExportViewModel.LoadTablesCommand}"
                                            Classes="primary"/>
                                 </Grid>
                             </Grid>
                         </Border>
-                        
+
                         <!-- 导出和导入区域 -->
-                        <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="0,0,0,15">
+                        <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="0,0,0,18">
                             <!-- 导出卡片 -->
-                            <Border Grid.Column="0" Classes="card" Margin="0,0,10,0">
+                            <Border Grid.Column="0" Classes="card" Margin="0,0,12,0">
                                 <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-                                    <TextBlock Grid.Row="0" Text="📤 エクスポート" Classes="section-title"/>
-                                    <TextBox Grid.Row="1" 
-                                            Text="{Binding ImportExportViewModel.ExportFolderPath}" 
-                                            Watermark="エクスポートフォルダを選択してください" 
-                                            Margin="0,0,0,8"/>
-                                    <Button Grid.Row="2" 
-                                           Content="📁 フォルダを選択" 
+                                    <TextBlock Grid.Row="0"
+                                              Text="📤 エクスポート"
+                                              Classes="section-title"/>
+                                    <TextBox Grid.Row="1"
+                                            Text="{Binding ImportExportViewModel.ExportFolderPath}"
+                                            Watermark="エクスポートフォルダを選択してください"
+                                            Margin="0,0,0,10"/>
+                                    <Button Grid.Row="2"
+                                           Content="📁 フォルダを選択"
                                            Command="{Binding ImportExportViewModel.SelectExportFolderCommand}"
                                            Classes="primary"
-                                           Margin="0,0,0,12"/>
-                                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,12">
-                                        <Button Content="✓ 全選択" 
+                                           Margin="0,0,0,14"/>
+                                    <StackPanel Grid.Row="3"
+                                               Orientation="Horizontal"
+                                               Margin="0,0,0,14">
+                                        <Button Content="✓ 全選択"
                                                Command="{Binding ImportExportViewModel.SelectAllTablesCommand}"
-                                               Margin="0,0,8,0"/>
+                                               Margin="0,0,10,0"/>
                                         <Button Content="✗ 全解除"
-                                               Command="{Binding ImportExportViewModel.DeselectAllTablesCommand}"
-                                               Margin="0,0,8,0"/>
+                                               Command="{Binding ImportExportViewModel.DeselectAllTablesCommand}"/>
                                     </StackPanel>
-                                    <Button Grid.Row="4" 
-                                           Content="▶ エクスポート実行" 
-                                           Command="{Binding ImportExportViewModel.ExportTablesCommand}" 
+                                    <Button Grid.Row="4"
+                                           Content="▶ エクスポート実行"
+                                           Command="{Binding ImportExportViewModel.ExportTablesCommand}"
                                            IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
                                            Classes="success"/>
                                 </Grid>
                             </Border>
-                            
+
                             <!-- 导入卡片 -->
-                            <Border Grid.Column="1" Classes="card" Margin="10,0,0,0">
+                            <Border Grid.Column="1" Classes="card" Margin="12,0,0,0">
                                 <Grid RowDefinitions="Auto,Auto,Auto,Auto">
-                                    <TextBlock Grid.Row="0" Text="📥 インポート" Classes="section-title"/>
-                                    <TextBox Grid.Row="1" 
-                                            Text="{Binding ImportExportViewModel.ImportFolderPath}" 
-                                            Watermark="インポートフォルダを選択してください" 
-                                            Margin="0,0,0,8"/>
-                                    <Button Grid.Row="2" 
-                                           Content="📁 フォルダを選択" 
+                                    <TextBlock Grid.Row="0"
+                                              Text="📥 インポート"
+                                              Classes="section-title"/>
+                                    <TextBox Grid.Row="1"
+                                            Text="{Binding ImportExportViewModel.ImportFolderPath}"
+                                            Watermark="インポートフォルダを選択してください"
+                                            Margin="0,0,0,10"/>
+                                    <Button Grid.Row="2"
+                                           Content="📁 フォルダを選択"
                                            Command="{Binding ImportExportViewModel.SelectImportFolderCommand}"
                                            Classes="primary"
-                                           Margin="0,0,0,12"/>
-                                    <Button Grid.Row="3" 
-                                           Content="▶ インポート実行" 
-                                           Command="{Binding ImportExportViewModel.ImportTablesCommand}" 
+                                           Margin="0,0,0,14"/>
+                                    <Button Grid.Row="3"
+                                           Content="▶ インポート実行"
+                                           Command="{Binding ImportExportViewModel.ImportTablesCommand}"
                                            IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
                                            Classes="success"/>
                                 </Grid>
                             </Border>
                         </Grid>
-                        
+
+                        <!-- 表格列表 -->
                         <Border Grid.Row="3" Classes="card">
                             <Grid RowDefinitions="Auto,*">
-                                <TextBlock Grid.Row="0" Text="テーブル一覧 (テスト表示)" Classes="section-title"/>
-        
-                                <ListBox Grid.Row="1" 
-                                         ItemsSource="{Binding ImportExportViewModel.Tables}"
-                                         MaxHeight="350"
-                                         Background="White">
+                                <TextBlock Grid.Row="0"
+                                          Text="テーブル一覧"
+                                          Classes="section-title"/>
+
+                                <ListBox Grid.Row="1"
+                                        ItemsSource="{Binding ImportExportViewModel.Tables}"
+                                        MaxHeight="380"
+                                        Background="White">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Padding="10,5" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
-                                                <Grid ColumnDefinitions="40,100,*,80">
-                                                    <CheckBox Grid.Column="0" 
-                                                              IsChecked="{Binding IsSelected}"
-                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="1" 
-                                                               Text="{Binding SchemaName}" 
-                                                               VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="2" 
-                                                               Text="{Binding TableName}" 
-                                                               VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="3" 
-                                                               Text="{Binding RowCount, StringFormat='{}{0:N0}行'}" 
-                                                               VerticalAlignment="Center"
-                                                               HorizontalAlignment="Right"/>
+                                            <Border Padding="14,10"
+                                                   BorderBrush="#E9ECEF"
+                                                   BorderThickness="0,0,0,1">
+                                                <Grid ColumnDefinitions="50,120,*,100">
+                                                    <CheckBox Grid.Column="0"
+                                                             IsChecked="{Binding IsSelected}"
+                                                             VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1"
+                                                              Text="{Binding SchemaName}"
+                                                              VerticalAlignment="Center"
+                                                              FontWeight="Medium"
+                                                              Foreground="#6C757D"/>
+                                                    <TextBlock Grid.Column="2"
+                                                              Text="{Binding TableName}"
+                                                              VerticalAlignment="Center"
+                                                              FontWeight="Medium"/>
+                                                    <TextBlock Grid.Column="3"
+                                                              Text="{Binding RowCount, StringFormat='{}{0:N0} 行'}"
+                                                              VerticalAlignment="Center"
+                                                              HorizontalAlignment="Right"
+                                                              Foreground="#6C757D"
+                                                              FontSize="13"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -398,27 +532,18 @@
                                 </ListBox>
                             </Grid>
                         </Border>
-                        
+
                         <!-- 进度条 -->
-                        <Border Grid.Row="4" Classes="card" IsVisible="{Binding ImportExportViewModel.IsProcessing}">
+                        <Border Grid.Row="4"
+                               Classes="card"
+                               IsVisible="{Binding ImportExportViewModel.IsProcessing}">
                             <Grid RowDefinitions="Auto,Auto">
-                                <TextBlock Grid.Row="0" Text="処理中..." Classes="section-title"/>
-                                <ProgressBar Grid.Row="1" 
-                                            Value="{Binding ImportExportViewModel.ProgressValue}" 
+                                <TextBlock Grid.Row="0"
+                                          Text="処理中..."
+                                          Classes="section-title"/>
+                                <ProgressBar Grid.Row="1"
+                                            Value="{Binding ImportExportViewModel.ProgressValue}"
                                             Maximum="100"/>
-                            </Grid>
-                        </Border>
-                        
-                        <!-- 日志区域 -->
-                        <Border Grid.Row="5" Classes="card" Margin="0,10,0,0">
-                            <Grid RowDefinitions="Auto,*">
-                                <TextBlock Grid.Row="0" Text="📝 ログ" Classes="section-title"/>
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="120">
-                                    <TextBlock Text="{Binding ImportExportViewModel.LogMessage}" 
-                                              TextWrapping="Wrap"
-                                              Foreground="#666666"
-                                              FontFamily="Consolas, Courier New, monospace"/>
-                                </ScrollViewer>
                             </Grid>
                         </Border>
                     </Grid>
@@ -428,113 +553,168 @@
             <!-- データ比較タブ -->
             <TabItem Header="🔍 データ比較">
                 <ScrollViewer>
-                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                        <TextBlock Grid.Row="0" Text="データベース比較" Classes="title"/>
-                        
-                        <!-- 连接选择 -->
+                    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0"
+                                  Text="CSV ファイル比較"
+                                  Classes="title"/>
+
+                        <!-- 数据库连接选择 -->
                         <Border Grid.Row="1" Classes="card">
-                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*">
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="接続選択" Classes="section-title" Margin="0,0,0,15"/>
-                                
-                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="旧データベース" FontWeight="Bold" Margin="0,0,0,8"/>
-                                    <ComboBox ItemsSource="{Binding CompareViewModel.Connections}" 
-                                             SelectedItem="{Binding CompareViewModel.OldConnection}" 
-                                             PlaceholderText="旧接続を選択してください">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding ConfigurationName}"/>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
-                                    <TextBlock Text="新データベース" FontWeight="Bold" Margin="0,0,0,8"/>
-                                    <ComboBox ItemsSource="{Binding CompareViewModel.Connections}" 
-                                             SelectedItem="{Binding CompareViewModel.NewConnection}" 
-                                             PlaceholderText="新接続を選択してください">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding ConfigurationName}"/>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                        
-                        <!-- 表格选择 -->
-                        <Border Grid.Row="2" Classes="card">
-                            <Grid RowDefinitions="Auto,Auto,Auto">
-                                <TextBlock Grid.Row="0" Text="テーブル選択" Classes="section-title"/>
-                                <Button Grid.Row="1" 
-                                       Content="📋 テーブルリストを読み込み" 
-                                       Command="{Binding CompareViewModel.LoadTablesCommand}"
-                                       Classes="primary"
-                                       Margin="0,0,0,12"/>
-                                <ComboBox Grid.Row="2" 
-                                         ItemsSource="{Binding CompareViewModel.Tables}" 
-                                         SelectedItem="{Binding CompareViewModel.SelectedTable}" 
-                                         PlaceholderText="比較するテーブルを選択してください">
+                            <Grid RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0"
+                                          Text="データベース接続選択"
+                                          Classes="section-title"/>
+                                <ComboBox Grid.Row="1"
+                                         ItemsSource="{Binding CompareViewModel.Connections}"
+                                         SelectedItem="{Binding CompareViewModel.SelectedConnection}"
+                                         PlaceholderText="データベース接続を選択してください（主キー取得用）">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding FullName}"/>
+                                            <TextBlock Text="{Binding ConfigurationName}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
                             </Grid>
                         </Border>
-                        
-                        <!-- 导出设置 -->
+
+                        <!-- 文件夹选择 -->
+                        <Border Grid.Row="2" Classes="card">
+                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*">
+                                <TextBlock Grid.Row="0"
+                                          Grid.ColumnSpan="2"
+                                          Text="フォルダ選択"
+                                          Classes="section-title"
+                                          Margin="0,0,0,18"/>
+
+                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,0">
+                                    <TextBlock Text="旧フォルダ"
+                                              FontWeight="Bold"
+                                              FontSize="14"
+                                              Margin="0,0,0,10"
+                                              Foreground="#495057"/>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                Text="{Binding CompareViewModel.OldFolderPath}"
+                                                Watermark="旧フォルダを選択してください"
+                                                Margin="0,0,12,0"
+                                                IsReadOnly="True"/>
+                                        <Button Grid.Column="1"
+                                               Content="📁 選択"
+                                               Command="{Binding CompareViewModel.SelectOldFolderCommand}"
+                                               Classes="primary"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="12,0,0,0">
+                                    <TextBlock Text="新フォルダ"
+                                              FontWeight="Bold"
+                                              FontSize="14"
+                                              Margin="0,0,0,10"
+                                              Foreground="#495057"/>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                Text="{Binding CompareViewModel.NewFolderPath}"
+                                                Watermark="新フォルダを選択してください"
+                                                Margin="0,0,12,0"
+                                                IsReadOnly="True"/>
+                                        <Button Grid.Column="1"
+                                               Content="📁 選択"
+                                               Command="{Binding CompareViewModel.SelectNewFolderCommand}"
+                                               Classes="primary"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- CSV文件选择 -->
                         <Border Grid.Row="3" Classes="card">
+                            <Grid RowDefinitions="Auto,Auto,Auto,*">
+                                <TextBlock Grid.Row="0"
+                                          Text="CSV ファイル選択"
+                                          Classes="section-title"/>
+                                <StackPanel Grid.Row="1"
+                                           Orientation="Horizontal"
+                                           Margin="0,0,0,12">
+                                    <Button Content="✓ 全選択"
+                                           Command="{Binding CompareViewModel.SelectAllCsvFilesCommand}"
+                                           Margin="0,0,10,0"/>
+                                    <Button Content="✗ 全解除"
+                                           Command="{Binding CompareViewModel.DeselectAllCsvFilesCommand}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Row="2"
+                                          Text="{Binding CompareViewModel.SelectedCsvFileCount, StringFormat='選択中: {0} ファイル'}"
+                                          FontSize="13"
+                                          Foreground="#6C757D"
+                                          Margin="0,0,0,10"/>
+                                <ListBox Grid.Row="3"
+                                        ItemsSource="{Binding CompareViewModel.CsvFileInfos}"
+                                        MaxHeight="300"
+                                        Background="White">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="12,8"
+                                                   BorderBrush="#E9ECEF"
+                                                   BorderThickness="0,0,0,1">
+                                                <Grid ColumnDefinitions="30,*">
+                                                    <CheckBox Grid.Column="0"
+                                                             IsChecked="{Binding IsSelected}"
+                                                             VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1"
+                                                              Text="{Binding FileName}"
+                                                              VerticalAlignment="Center"
+                                                              FontSize="13"
+                                                              Margin="8,0,0,0"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+
+                        <!-- 导出设置 -->
+                        <Border Grid.Row="4" Classes="card">
                             <Grid RowDefinitions="Auto,Auto">
-                                <TextBlock Grid.Row="0" Text="エクスポート設定" Classes="section-title"/>
+                                <TextBlock Grid.Row="0"
+                                          Text="エクスポート設定"
+                                          Classes="section-title"/>
                                 <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-                                    <TextBox Grid.Column="0" 
-                                            Text="{Binding CompareViewModel.ExportFilePath}" 
-                                            Watermark="エクスポートファイルパス (.xlsx)" 
-                                            Margin="0,0,10,0"/>
-                                    <Button Grid.Column="1" 
-                                           Content="📁 ファイルを選択" 
+                                    <TextBox Grid.Column="0"
+                                            Text="{Binding CompareViewModel.ExportFilePath}"
+                                            Watermark="エクスポートファイルパス (.xlsx)"
+                                            Margin="0,0,12,0"/>
+                                    <Button Grid.Column="1"
+                                           Content="📁 ファイルを選択"
                                            Command="{Binding CompareViewModel.SelectExportFileCommand}"
                                            Classes="primary"/>
                                 </Grid>
                             </Grid>
                         </Border>
-                        
+
                         <!-- 执行按钮 -->
-                        <Border Grid.Row="4" Classes="card">
-                            <Button Content="▶ 比較実行" 
-                                   Command="{Binding CompareViewModel.CompareTablesCommand}" 
+                        <Border Grid.Row="5" Classes="card">
+                            <Button Content="▶ 比較実行"
+                                   Command="{Binding CompareViewModel.CompareCsvFilesCommand}"
                                    IsEnabled="{Binding !CompareViewModel.IsProcessing}"
                                    Classes="success"
                                    HorizontalAlignment="Stretch"
                                    HorizontalContentAlignment="Center"
-                                   FontSize="16"
-                                   Padding="20,12"/>
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Padding="24,14"/>
                         </Border>
-                        
+
                         <!-- 进度条 -->
-                        <Border Grid.Row="5" Classes="card" IsVisible="{Binding CompareViewModel.IsProcessing}">
+                        <Border Grid.Row="6"
+                               Classes="card"
+                               IsVisible="{Binding CompareViewModel.IsProcessing}">
                             <Grid RowDefinitions="Auto,Auto">
-                                <TextBlock Grid.Row="0" Text="処理中..." Classes="section-title"/>
-                                <ProgressBar Grid.Row="1" 
-                                            Value="{Binding CompareViewModel.ProgressValue}" 
+                                <TextBlock Grid.Row="0"
+                                          Text="処理中..."
+                                          Classes="section-title"/>
+                                <ProgressBar Grid.Row="1"
+                                            Value="{Binding CompareViewModel.ProgressValue}"
                                             Maximum="100"/>
-                            </Grid>
-                        </Border>
-                        
-                        <!-- 日志区域 -->
-                        <Border Grid.Row="6" Classes="card" Margin="0,10,0,0">
-                            <Grid RowDefinitions="Auto,*">
-                                <TextBlock Grid.Row="0" Text="📝 ログ" Classes="section-title"/>
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="150">
-                                    <TextBlock Text="{Binding CompareViewModel.LogMessage}" 
-                                              TextWrapping="Wrap"
-                                              Foreground="#666666"
-                                              FontFamily="Consolas, Courier New, monospace"/>
-                                </ScrollViewer>
                             </Grid>
                         </Border>
                     </Grid>
@@ -543,25 +723,28 @@
         </TabControl>
 
         <!-- 底部日志区域 -->
-        <Border Grid.Row="2" 
-               Background="#FAFAFA" 
-               BorderBrush="#E0E0E0" 
-               BorderThickness="0,2,0,0" 
-               Padding="15,12"
-               MaxHeight="180">
+        <Border Grid.Row="2"
+               Background="#FFFFFF"
+               BorderBrush="#DEE2E6"
+               BorderThickness="0,2,0,0"
+               Padding="18,14"
+               MaxHeight="200">
             <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" 
-                          Text="📋 システムログ" 
-                          FontWeight="Bold" 
-                          FontSize="13"
-                          Foreground="#666666"
-                          Margin="0,0,0,8"/>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <TextBlock Text="{Binding LogMessage}" 
+                <TextBlock Grid.Row="0"
+                          Text="📋 システムログ"
+                          FontWeight="Bold"
+                          FontSize="14"
+                          Foreground="#495057"
+                          Margin="0,0,0,10"/>
+                <ScrollViewer Grid.Row="1"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled">
+                    <TextBlock Text="{Binding LogMessage}"
                               TextWrapping="Wrap"
-                              Foreground="#424242"
-                              FontFamily="Consolas, Courier New, monospace"
-                              FontSize="12"/>
+                              Foreground="#212529"
+                              FontFamily="Consolas, 'Courier New', monospace"
+                              FontSize="12"
+                              LineHeight="20"/>
                 </ScrollViewer>
             </Grid>
         </Border>

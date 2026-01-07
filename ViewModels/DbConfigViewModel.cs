@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using WslPostgreTool.Models;
 using WslPostgreTool.Services;
@@ -19,12 +18,20 @@ public partial class DbConfigViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<string> _wslDistributions = new();
 
-    public DbConfigViewModel()
-    {
-        LoadWslDistributions();
-    }
-
     private readonly WslService _wslService = new();
+    private readonly MainViewModel _mainViewModel;
+
+    public DbConfigViewModel(MainViewModel mainViewModel)
+    {
+        _mainViewModel = mainViewModel;
+        LoadWslDistributions();
+        
+        // 接続変更時に自動保存
+        Connections.CollectionChanged += (s, e) =>
+        {
+            _mainViewModel.SaveConnections();
+        };
+    }
 
     private async void LoadWslDistributions()
     {
@@ -39,21 +46,20 @@ public partial class DbConfigViewModel : ViewModelBase
     [RelayCommand]
     private void AddConnection()
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        var newConnection = new DatabaseConnection
         {
-            Connections.Add(new DatabaseConnection
-            {
-                ConfigurationName = $"設定{Connections.Count + 1}",
-                Host = "localhost",
-                Port = 5880,
-                User = "cisdb_unisys",
-                Password = "cisdb_unisys",
-                Database = "cisdb"
-            });
-        });
+            ConfigurationName = $"設定{Connections.Count + 1}",
+            Host = "localhost",
+            Port = 5432
+        };
         
-        OnPropertyChanged(nameof(Connections));
-        Debug.WriteLine($"连接已添加，当前数量: {Connections.Count}");
+        newConnection.PropertyChanged += (s, e) =>
+        {
+            _mainViewModel.SaveConnections();
+        };
+        
+        Connections.Add(newConnection);
+        _mainViewModel.AppendLog($"接続 '{newConnection.ConfigurationName}' を追加しました。");
     }
 
     [RelayCommand]
@@ -61,19 +67,22 @@ public partial class DbConfigViewModel : ViewModelBase
     {
         if (connection != null)
         {
+            var name = connection.ConfigurationName;
             Connections.Remove(connection);
+            _mainViewModel.AppendLog($"接続 '{name}' を削除しました。");
         }
     }
 
     [RelayCommand]
     private async Task RefreshWslDistributions()
     {
+        _mainViewModel.AppendLog("WSL ディストリビューションリストを更新しています...");
         var distros = await _wslService.GetWslDistributionsAsync();
         WslDistributions.Clear();
         foreach (var distro in distros)
         {
             WslDistributions.Add(distro);
         }
+        _mainViewModel.AppendLog($"{WslDistributions.Count} 個の WSL ディストリビューションを検出しました。");
     }
 }
-

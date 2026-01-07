@@ -201,7 +201,7 @@ public class DatabaseService
         progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' にデータをインポートしています...");
 
         // COPY FROM
-        var copySql = $"COPY {schemaName}.{tableName}.csv FROM STDIN WITH (FORMAT CSV, HEADER true)";
+        var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true)";
         await using var writer = conn.BeginBinaryImport(copySql);
 
         // await using var reader = new StreamReader(csvPath, Encoding.UTF8);
