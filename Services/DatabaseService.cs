@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Npgsql;
 using WslPostgreTool.Models;
 
@@ -178,7 +181,8 @@ public class DatabaseService
         var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true)";
         await using var writer = conn.BeginBinaryImport(copySql);
 
-        await using var reader = new StreamReader(csvPath, Encoding.UTF8);
+        // await using var reader = new StreamReader(csvPath, Encoding.UTF8);
+        using var reader = new StreamReader(csvPath, Encoding.UTF8);
         string? headerLine = await reader.ReadLineAsync(); // ヘッダー行をスキップ
 
         string? line;

@@ -1,16 +1,21 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WslPostgreTool.ViewModels"
+        xmlns:m="using:WslPostgreTool.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
         x:Class="WslPostgreTool.Views.MainView"
-        x:DataContext="{d:DesignInstance vm:MainViewModel, IsDesignTimeCreatable=False}"
+        x:DataType="vm:MainViewModel"
         Title="WSL PostgreSQL 管理ツール"
         Width="1400" Height="900"
         MinWidth="1000" MinHeight="700"
         WindowStartupLocation="CenterScreen"
         Background="#F5F5F5">
+    
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
     
     <Window.Styles>
         <!-- 全局文本样式 -->
@@ -122,17 +127,22 @@
             <!-- DB設定タブ -->
             <TabItem Header="📋 DB設定">
                 <ScrollViewer>
-                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto"
+                          DataContext="{Binding DbConfigViewModel}"
+                          x:DataType="vm:DbConfigViewModel">
                         <TextBlock Grid.Row="0" Text="データベース接続設定" Classes="title"/>
                         
                         <!-- 操作按钮区域 -->
                         <Border Grid.Row="1" Classes="card">
                             <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Connections.Count, StringFormat='连接数: {0}'}" 
+                                           Margin="0,0,20,0"
+                                           VerticalAlignment="Center"/>
                                 <Button Content="➕ 接続を追加" 
-                                       Command="{Binding DbConfigViewModel.AddConnectionCommand}" 
-                                       Classes="primary"/>
+                                        Command="{Binding AddConnectionCommand}" 
+                                        Classes="primary"/>
                                 <Button Content="🔄 WSLリストを更新" 
-                                       Command="{Binding DbConfigViewModel.RefreshWslDistributionsCommand}"/>
+                                       Command="{Binding RefreshWslDistributionsCommand}"/>
                             </StackPanel>
                         </Border>
                         
@@ -141,32 +151,19 @@
                             <Grid RowDefinitions="Auto,*">
                                 <TextBlock Grid.Row="0" Text="接続一覧" Classes="section-title"/>
                                 <DataGrid Grid.Row="1" 
-                                         ItemsSource="{Binding DbConfigViewModel.Connections}" 
-                                         SelectedItem="{Binding DbConfigViewModel.SelectedConnection}" 
+                                         ItemsSource="{Binding Connections}" 
+                                         SelectedItem="{Binding SelectedConnection}" 
                                          AutoGenerateColumns="False" 
-                                         CanUserAddRows="False" 
-                                         CanUserDeleteRows="False"
                                          GridLinesVisibility="Horizontal"
                                          HeadersVisibility="Column">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="設定名" Binding="{Binding ConfigurationName}" Width="*" MinWidth="120">
-                                            <DataGridTextColumn.HeaderStyle>
-                                                <Style Selector="DataGridColumnHeader">
-                                                    <Setter Property="FontWeight" Value="Bold"/>
-                                                    <Setter Property="Background" Value="#F5F5F5"/>
-                                                </Style>
-                                            </DataGridTextColumn.HeaderStyle>
                                         </DataGridTextColumn>
                                         <DataGridTextColumn Header="ホスト" Binding="{Binding Host}" Width="*" MinWidth="100"/>
                                         <DataGridTextColumn Header="ポート" Binding="{Binding Port}" Width="80"/>
                                         <DataGridTextColumn Header="データベース" Binding="{Binding Database}" Width="*" MinWidth="100"/>
                                         <DataGridTextColumn Header="ユーザー" Binding="{Binding User}" Width="*" MinWidth="100"/>
                                         <DataGridTextColumn Header="パスワード" Binding="{Binding Password}" Width="*" MinWidth="100">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style Selector="TextBlock">
-                                                    <Setter Property="Text" Value="••••••"/>
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
                                         </DataGridTextColumn>
                                         <DataGridTemplateColumn Header="WSLディストリビューション" Width="*" MinWidth="150">
                                             <DataGridTemplateColumn.CellTemplate>
@@ -181,7 +178,7 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Content="🗑️ 削除" 
-                                                           Command="{Binding $parent[DataGrid].DataContext.DbConfigViewModel.RemoveConnectionCommand}" 
+                                                           Command="{Binding DataContext.RemoveConnectionCommand}" 
                                                            CommandParameter="{Binding}"
                                                            Classes="danger"
                                                            Padding="8,4"

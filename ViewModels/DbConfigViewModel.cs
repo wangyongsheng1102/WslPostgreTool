@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using WslPostgreTool.Models;
 using WslPostgreTool.Services;
 
@@ -43,6 +45,8 @@ public partial class DbConfigViewModel : ViewModelBase
             Host = "localhost",
             Port = 5432
         });
+        OnPropertyChanged(nameof(Connections));
+        Debug.WriteLine($"连接已添加，当前数量: {Connections.Count}");
     }
 
     [RelayCommand]

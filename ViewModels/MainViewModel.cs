@@ -36,6 +36,10 @@ public partial class MainViewModel : ViewModelBase
     private CompareViewModel _compareViewModel = new();
 
     private readonly WslService _wslService = new();
+    
+    public DbConfigViewModel DbConfig { get; } = new();
+    public ImportExportViewModel ImportExport { get; } = new();
+    public CompareViewModel Compare { get; } = new();
 
     public MainViewModel()
     {
