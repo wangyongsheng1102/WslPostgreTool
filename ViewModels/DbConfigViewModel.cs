@@ -39,12 +39,19 @@ public partial class DbConfigViewModel : ViewModelBase
     [RelayCommand]
     private void AddConnection()
     {
-        Connections.Add(new DatabaseConnection
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            ConfigurationName = $"設定{Connections.Count + 1}",
-            Host = "localhost",
-            Port = 5432
+            Connections.Add(new DatabaseConnection
+            {
+                ConfigurationName = $"設定{Connections.Count + 1}",
+                Host = "localhost",
+                Port = 5880,
+                User = "cisdb_unisys",
+                Password = "cisdb_unisys",
+                Database = "cisdb"
+            });
         });
+        
         OnPropertyChanged(nameof(Connections));
         Debug.WriteLine($"连接已添加，当前数量: {Connections.Count}");
     }

@@ -26,36 +26,59 @@ public class DatabaseService
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
 
+        // 第一步：获取所有表的基本信息
         const string sql = @"
-            SELECT 
-                table_schema,
-                table_name,
-                (SELECT COUNT(*) FROM information_schema.columns 
-                 WHERE table_schema = t.table_schema AND table_name = t.table_name) as column_count
-            FROM information_schema.tables t
-            WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-              AND table_type = 'BASE TABLE'
-            ORDER BY table_schema, table_name";
+        SELECT 
+            table_schema,
+            table_name,
+            (SELECT COUNT(*) FROM information_schema.columns 
+             WHERE table_schema = t.table_schema AND table_name = t.table_name) as column_count
+        FROM information_schema.tables t
+        WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+          AND table_type = 'BASE TABLE'
+        ORDER BY table_schema, table_name";
 
         await using var cmd = new NpgsqlCommand(sql, conn);
         await using var reader = await cmd.ExecuteReaderAsync();
 
+        // 先读取所有表到临时列表
+        var tableList = new List<(string Schema, string Table)>();
+    
         while (await reader.ReadAsync())
         {
-            var schemaName = reader.GetString(0);
-            var tableName = reader.GetString(1);
+            tableList.Add((reader.GetString(0), reader.GetString(1)));
+        }
+    
+        // 必须关闭第一个读取器
+        await reader.CloseAsync();
 
-            // 行数を取得
-            var countSql = $"SELECT COUNT(*) FROM {schemaName}.{tableName}";
-            await using var countCmd = new NpgsqlCommand(countSql, conn);
-            var rowCount = Convert.ToInt64(await countCmd.ExecuteScalarAsync());
-
-            tables.Add(new TableInfo
+        // 第二步：为每个表获取行数
+        foreach (var (schemaName, tableName) in tableList)
+        {
+            try
             {
-                SchemaName = schemaName,
-                TableName = tableName,
-                RowCount = rowCount
-            });
+                var countSql = $"SELECT COUNT(*) FROM \"{schemaName}\".\"{tableName}\"";
+                await using var countCmd = new NpgsqlCommand(countSql, conn);
+                var rowCount = Convert.ToInt64(await countCmd.ExecuteScalarAsync());
+
+                tables.Add(new TableInfo
+                {
+                    SchemaName = schemaName,
+                    TableName = tableName,
+                    RowCount = rowCount
+                });
+            }
+            catch (Exception ex)
+            {
+                // 如果无法获取行数，添加一个默认值
+                tables.Add(new TableInfo
+                {
+                    SchemaName = schemaName,
+                    TableName = tableName,
+                    RowCount = -1,
+                    // Error = ex.Message
+                });
+            }
         }
 
         return tables;
@@ -178,7 +201,7 @@ public class DatabaseService
         progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' にデータをインポートしています...");
 
         // COPY FROM
-        var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true)";
+        var copySql = $"COPY {schemaName}.{tableName}.csv FROM STDIN WITH (FORMAT CSV, HEADER true)";
         await using var writer = conn.BeginBinaryImport(copySql);
 
         // await using var reader = new StreamReader(csvPath, Encoding.UTF8);

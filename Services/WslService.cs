@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace WslPostgreTool.Services;
@@ -42,7 +43,8 @@ public class WslService
             {
                 if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("NAME", StringComparison.OrdinalIgnoreCase))
                 {
-                    distributions.Add(line.Trim());
+                    var cleaned = Regex.Replace(line, @"[\0\s]", "");
+                    distributions.Add(cleaned.Trim());
                 }
             }
         }

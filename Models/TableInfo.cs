@@ -1,14 +1,18 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace WslPostgreTool.Models;
 
 /// <summary>
 /// テーブル情報モデル
 /// </summary>
-public class TableInfo
+public partial class TableInfo:ObservableObject
 {
+    
     public string SchemaName { get; set; } = string.Empty;
     public string TableName { get; set; } = string.Empty;
     public string FullName => $"{SchemaName}.{TableName}";
-    public bool IsSelected { get; set; } = true;
+    [ObservableProperty]
+    public bool isSelected = true;
     public long RowCount { get; set; }
 }
 

@@ -132,7 +132,7 @@ public partial class ImportExportViewModel : ViewModelBase
 
             foreach (var table in selectedTables)
             {
-                var csvPath = Path.Combine(exportDir, $"{table.TableName}.csv");
+                var csvPath = Path.Combine(exportDir, $"{table.SchemaName}.{table.TableName}.csv");
                 await _databaseService.ExportTableToCsvAsync(
                     connectionString,
                     table.SchemaName,
