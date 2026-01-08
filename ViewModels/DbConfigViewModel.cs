@@ -50,7 +50,10 @@ public partial class DbConfigViewModel : ViewModelBase
         {
             ConfigurationName = $"設定{Connections.Count + 1}",
             Host = "localhost",
-            Port = 5432
+            Port = 5880,
+            User = "cisdb_unisys",
+            Password = "cisdb_unisys",
+            Database = "cisdb"
         };
         
         newConnection.PropertyChanged += (s, e) =>

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Threading;
 using WslPostgreTool.Models;
 using WslPostgreTool.Services;
 
@@ -21,6 +22,10 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _logMessage = string.Empty;
+    
+    // 添加新的 LogMessages 集合用于 ItemsControl
+    [ObservableProperty]
+    private ObservableCollection<string> _logMessages = new();
 
     [ObservableProperty]
     private int _progressValue;
@@ -95,17 +100,62 @@ public partial class MainViewModel : ViewModelBase
             LogMessage = $"[エラー] 設定の保存に失敗しました: {ex.Message}";
         }
     }
-
+    
+    // 清空日志命令
+    [RelayCommand]
+    private void ClearLogs()
+    {
+        ClearLogsFunc();
+    }
+    
+    // 添加清空日志的方法
+    public void ClearLogsFunc()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            LogMessages.Clear();
+            LogMessage = string.Empty;
+        });
+    }
+    
+    // 添加滚动事件
+    public event Action? RequestScrollToBottom;
+    
+    // 修改 AppendLog 方法
     public void AppendLog(string message)
     {
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        if (string.IsNullOrEmpty(LogMessage))
+        var logEntry = $"[{timestamp}] {message}";
+        
+        // 在 UI 线程更新
+        Dispatcher.UIThread.Post(() =>
         {
-            LogMessage = $"[{timestamp}] {message}";
-        }
-        else
-        {
-            LogMessage += $"\n[{timestamp}] {message}";
-        }
+            // 1. 更新 LogMessages 集合（用于 ItemsControl）
+            LogMessages.Add(logEntry);
+            
+            // 2. 可选：保持 LogMessage 字符串（用于向后兼容）
+            if (string.IsNullOrEmpty(LogMessage))
+            {
+                LogMessage = logEntry;
+            }
+            else
+            {
+                LogMessage += $"\n{logEntry}";
+            }
+            
+            // 限制日志数量（防止内存无限增长）
+            const int MAX_LOG_ENTRIES = 1000;
+            if (LogMessages.Count > MAX_LOG_ENTRIES)
+            {
+                // 移除最旧的日志
+                LogMessages.RemoveAt(0);
+                
+                // 重新构建 LogMessage 字符串（只保留最近100条）
+                var recentLogs = LogMessages.TakeLast(1000);
+                LogMessage = string.Join("\n", recentLogs);
+                RequestScrollToBottom?.Invoke();
+            }
+        }, DispatcherPriority.Background);
     }
+
 }

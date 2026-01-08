@@ -18,6 +18,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.10" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.9" />
+    <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.3.0.6" />
     <PackageReference Include="Npgsql" Version="10.0.1" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

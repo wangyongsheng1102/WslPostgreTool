@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using WslPostgreTool.Models;
 using WslPostgreTool.Services;
 
@@ -188,101 +189,114 @@ public partial class CompareViewModel : ViewModelBase
             IsProcessing = true;
             _mainViewModel.AppendLog($"[処理中] {selectedFiles.Count} 個の CSV ファイルの比較を開始しています...");
             ProgressValue = 0;
+            
+            await Task.Run(async () => {
 
-            var connectionString = SelectedConnection.GetConnectionString();
-            var allResults = new List<RowComparisonResult>();
-            int completed = 0;
+                var connectionString = SelectedConnection.GetConnectionString();
+                var allResults = new List<RowComparisonResult>();
+                int completed = 0;
 
-            foreach (var csvFileInfo in selectedFiles)
-            {
-                var csvFileName = csvFileInfo.FileName;
-                _mainViewModel.AppendLog($"[処理中] {csvFileName} を比較しています...");
-
-                var oldCsvPath = FindCsvFile(OldFolderPath, csvFileName);
-                var newCsvPath = FindCsvFile(NewFolderPath, csvFileName);
-
-                if (oldCsvPath == null || newCsvPath == null)
+                foreach (var csvFileInfo in selectedFiles)
                 {
-                    _mainViewModel.AppendLog($"[警告] {csvFileName} が見つかりません。スキップします。");
-                    continue;
-                }
+                    var csvFileName = csvFileInfo.FileName;
+                    _mainViewModel.AppendLog($"[処理中] {csvFileName} を比較しています...");
 
-                // CSVファイル名からテーブル名を推測（schema.table.csv 形式）
-                var fileNameWithoutExt = Path.GetFileNameWithoutExtension(csvFileName);
-                var parts = fileNameWithoutExt.Split('.');
-                string schemaName, tableName;
+                    var oldCsvPath = FindCsvFile(OldFolderPath, csvFileName);
+                    var newCsvPath = FindCsvFile(NewFolderPath, csvFileName);
 
-                if (parts.Length >= 2)
-                {
-                    schemaName = parts[0];
-                    tableName = string.Join(".", parts.Skip(1));
-                }
-                else
-                {
-                    schemaName = "public";
-                    tableName = fileNameWithoutExt;
-                }
+                    if (oldCsvPath == null || newCsvPath == null)
+                    {
+                        _mainViewModel.AppendLog($"[警告] {csvFileName} が見つかりません。スキップします。");
+                        continue;
+                    }
 
-                // データベースから主キーを取得
-                _mainViewModel.AppendLog($"[処理中] テーブル '{schemaName}.{tableName}' の主キーを取得しています...");
-                List<string> primaryKeys;
+                    // CSVファイル名からテーブル名を推測（schema.table.csv 形式）
+                    var fileNameWithoutExt = Path.GetFileNameWithoutExtension(csvFileName);
+                    var parts = fileNameWithoutExt.Split('.');
+                    string schemaName, tableName;
 
-                try
-                {
-                    primaryKeys = await _databaseService.GetPrimaryKeyColumnsAsync(
+                    if (parts.Length >= 2)
+                    {
+                        schemaName = parts[0];
+                        tableName = string.Join(".", parts.Skip(1));
+                    }
+                    else
+                    {
+                        schemaName = "public";
+                        tableName = fileNameWithoutExt;
+                    }
+
+                    // データベースから主キーを取得
+                    _mainViewModel.AppendLog($"[処理中] テーブル '{schemaName}.{tableName}' の主キーを取得しています...");
+                    List<string> primaryKeys;
+
+                    try
+                    {
+                        primaryKeys = await _databaseService.GetPrimaryKeyColumnsAsync(
+                            connectionString,
+                            schemaName,
+                            tableName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _mainViewModel.AppendLog($"[警告] テーブル '{schemaName}.{tableName}' の主キー取得に失敗しました: {ex.Message}。スキップします。");
+                        continue;
+                    }
+
+                    if (primaryKeys.Count == 0)
+                    {
+                        _mainViewModel.AppendLog($"[警告] テーブル '{schemaName}.{tableName}' に主キーがありません。スキップします。");
+                        continue;
+                    }
+                    
+                    _mainViewModel.AppendLog($"[情報] 主キー: {string.Join(", ", primaryKeys)}");
+
+                    // CSVファイルを比較
+                    var fileProgress = new Progress<(int current, int total, string message)>(p =>
+                    {
+                        
+                        Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            var overallProgress = (completed * 100 + p.current) / selectedFiles.Count;
+                            ProgressValue = overallProgress;
+                            _mainViewModel.AppendLog($"[{csvFileName}] {p.message}");
+                        });
+                    });
+
+                    var results = await _csvCompareService.CompareCsvFilesAsync(
+                        oldCsvPath,
+                        newCsvPath,
+                        primaryKeys,
                         connectionString,
                         schemaName,
-                        tableName);
-                }
-                catch (Exception ex)
-                {
-                    _mainViewModel.AppendLog($"[警告] テーブル '{schemaName}.{tableName}' の主キー取得に失敗しました: {ex.Message}。スキップします。");
-                    continue;
-                }
+                        tableName,
+                        fileProgress);
 
-                if (primaryKeys.Count == 0)
-                {
-                    _mainViewModel.AppendLog($"[警告] テーブル '{schemaName}.{tableName}' に主キーがありません。スキップします。");
-                    continue;
+                    allResults.AddRange(results);
+                    completed++;
+                    ProgressValue = (completed * 100) / selectedFiles.Count;
                 }
 
-                _mainViewModel.AppendLog($"[情報] 主キー: {string.Join(", ", primaryKeys)}");
-
-                // CSVファイルを比較
-                var fileProgress = new Progress<(int current, int total, string message)>(p =>
+                // Excel にエクスポート
+                _mainViewModel.AppendLog("[処理中] Excel ファイルを生成しています...");
+                await Task.Run(() =>
                 {
-                    var overallProgress = (completed * 100 + p.current) / selectedFiles.Count;
-                    ProgressValue = overallProgress;
-                    _mainViewModel.AppendLog($"[{csvFileName}] {p.message}");
+                    _excelService.ExportComparisonResults(ExportFilePath, allResults);
                 });
 
-                var results = await _csvCompareService.CompareCsvFilesAsync(
-                    oldCsvPath,
-                    newCsvPath,
-                    primaryKeys,
-                    connectionString,
-                    schemaName,
-                    tableName,
-                    fileProgress);
+                var deletedCount = allResults.Count(r => r.Status == ComparisonStatus.Deleted);
+                var addedCount = allResults.Count(r => r.Status == ComparisonStatus.Added);
+                var updatedCount = allResults.Count(r => r.Status == ComparisonStatus.Updated);
 
-                allResults.AddRange(results);
-                completed++;
-                ProgressValue = (completed * 100) / selectedFiles.Count;
-            }
-
-            // Excel にエクスポート
-            _mainViewModel.AppendLog("[処理中] Excel ファイルを生成しています...");
-            _excelService.ExportComparisonResults(ExportFilePath, allResults);
-
-            var deletedCount = allResults.Count(r => r.Status == ComparisonStatus.Deleted);
-            var addedCount = allResults.Count(r => r.Status == ComparisonStatus.Added);
-            var updatedCount = allResults.Count(r => r.Status == ComparisonStatus.Updated);
-
-            _mainViewModel.AppendLog($"[完了] 比較が完了しました。");
-            _mainViewModel.AppendLog($"  削除: {deletedCount} 件");
-            _mainViewModel.AppendLog($"  追加: {addedCount} 件");
-            _mainViewModel.AppendLog($"  更新: {updatedCount} 件");
-            _mainViewModel.AppendLog($"  結果を {ExportFilePath} に保存しました。");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _mainViewModel.AppendLog($"[完了] 比較が完了しました。");
+                    _mainViewModel.AppendLog($"  削除: {deletedCount} 件");
+                    _mainViewModel.AppendLog($"  追加: {addedCount} 件");
+                    _mainViewModel.AppendLog($"  更新: {updatedCount} 件");
+                    _mainViewModel.AppendLog($"  結果を {ExportFilePath} に保存しました。");
+                });
+            });
         }
         catch (Exception ex)
         {

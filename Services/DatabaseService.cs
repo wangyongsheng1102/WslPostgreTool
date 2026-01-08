@@ -182,51 +182,203 @@ public class DatabaseService
 
         return columns;
     }
-
-    /// <summary>
-    /// CSV インポート（TRUNCATE + COPY）
-    /// </summary>
+    
+    // public async Task ImportTableFromCsvAsync(string connectionString, string schemaName, string tableName, string csvPath, IProgress<string>? progress = null)
+    // {
+    //     await using var conn = new NpgsqlConnection(connectionString);
+    //     await conn.OpenAsync();
+    //
+    //     progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' をクリアしています...");
+    //
+    //     // TRUNCATE
+    //     var truncateSql = $"TRUNCATE TABLE {schemaName}.{tableName}";
+    //     await using var truncateCmd = new NpgsqlCommand(truncateSql, conn);
+    //     await truncateCmd.ExecuteNonQueryAsync();
+    //
+    //     progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' にデータをインポートしています...");
+    //
+    //     // 最も簡単な方法：ファイルを直接コピー
+    //     var copySql = $"COPY {schemaName}.{tableName} FROM @filePath WITH (FORMAT CSV, HEADER true)";
+    //
+    //     await using var copyCmd = new NpgsqlCommand(copySql, conn);
+    //     copyCmd.Parameters.AddWithValue("filePath", csvPath);
+    //
+    //     await copyCmd.ExecuteNonQueryAsync();
+    //
+    //     progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のインポートが完了しました。");
+    // }
+    
     public async Task ImportTableFromCsvAsync(string connectionString, string schemaName, string tableName, string csvPath, IProgress<string>? progress = null)
     {
-        await using var conn = new NpgsqlConnection(connectionString);
-        await conn.OpenAsync();
-
-        progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' をクリアしています...");
-
-        // TRUNCATE
-        var truncateSql = $"TRUNCATE TABLE {schemaName}.{tableName}";
-        await using var truncateCmd = new NpgsqlCommand(truncateSql, conn);
-        await truncateCmd.ExecuteNonQueryAsync();
-
-        progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' にデータをインポートしています...");
-
-        // COPY FROM
-        var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true)";
-        await using var writer = conn.BeginBinaryImport(copySql);
-
-        // await using var reader = new StreamReader(csvPath, Encoding.UTF8);
-        using var reader = new StreamReader(csvPath, Encoding.UTF8);
-        string? headerLine = await reader.ReadLineAsync(); // ヘッダー行をスキップ
-
-        string? line;
-        while ((line = await reader.ReadLineAsync()) != null)
+        try
         {
-            if (string.IsNullOrWhiteSpace(line)) continue;
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
 
-            var values = ParseCsvLine(line);
-            writer.StartRow();
-            foreach (var value in values)
+            // 1. テーブル存在チェック
+            progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' の存在を確認しています...");
+            
+            var tableExists = await CheckTableExistsAsync(conn, schemaName, tableName);
+            if (!tableExists)
             {
-                if (string.IsNullOrEmpty(value))
-                    writer.WriteNull();
-                else
-                    writer.Write(value);
+                progress?.Report($"[スキップ] テーブル '{schemaName}.{tableName}' は存在しません。インポートをスキップします。");
+                return;
+            }
+
+            // 2. ファイル存在チェック
+            if (!File.Exists(csvPath))
+            {
+                progress?.Report($"[エラー] CSVファイル '{csvPath}' が存在しません。");
+                throw new FileNotFoundException($"CSVファイル '{csvPath}' が見つかりません。");
+            }
+
+            progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' をクリアしています...");
+
+            // 3. TRUNCATE
+            try
+            {
+                var truncateSql = $"TRUNCATE TABLE {schemaName}.{tableName}";
+                await using var truncateCmd = new NpgsqlCommand(truncateSql, conn);
+                await truncateCmd.ExecuteNonQueryAsync();
+            }
+            catch (PostgresException ex) when (ex.SqlState == "42P01") // テーブルが存在しないエラー
+            {
+                progress?.Report($"[警告] テーブル '{schemaName}.{tableName}' が既に削除されています。インポートをスキップします。");
+                return;
+            }
+
+            progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' にデータをインポートしています...");
+
+            // 4. COPY
+            var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true)";
+            
+            try
+            {
+                await using (var writer = conn.BeginTextImport(copySql))
+                {
+                    using var reader = new StreamReader(csvPath, Encoding.UTF8);
+                    
+                    // ファイル全体をストリームとしてコピー
+                    string content = await reader.ReadToEndAsync();
+                    await writer.WriteAsync(content);
+                }
+                
+                progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のインポートが完了しました。");
+            }
+            catch (PostgresException ex) when (ex.SqlState == "42P01") // テーブルが存在しないエラー
+            {
+                progress?.Report($"[警告] インポート中にテーブル '{schemaName}.{tableName}' が削除されました。");
             }
         }
-
-        await writer.CompleteAsync();
-        progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のインポートが完了しました。");
+        catch (Exception ex)
+        {
+            progress?.Report($"[エラー] テーブル '{schemaName}.{tableName}' のインポート中にエラーが発生しました: {ex.Message}");
+            throw;
+        }
     }
+
+
+    // テーブル存在チェック用のヘルパーメソッド
+    private async Task<bool> CheckTableExistsAsync(NpgsqlConnection conn, string schemaName, string tableName)
+    {
+        var checkSql = @"
+        SELECT EXISTS (
+            SELECT 1 
+            FROM information_schema.tables 
+            WHERE table_schema = @schemaName 
+            AND table_name = @tableName
+        )";
+    
+        await using var checkCmd = new NpgsqlCommand(checkSql, conn);
+        checkCmd.Parameters.AddWithValue("@schemaName", schemaName);
+        checkCmd.Parameters.AddWithValue("@tableName", tableName);
+    
+        var result = await checkCmd.ExecuteScalarAsync();
+        return result != null && result != DBNull.Value && Convert.ToBoolean(result);
+    }
+
+    // オプション：より詳細なチェックを行うメソッド（カラム構造の確認など）
+    private async Task<bool> ValidateTableStructureAsync(NpgsqlConnection conn, string schemaName, string tableName, string csvPath)
+    {
+        // CSVのヘッダーを読み取る
+        using var reader = new StreamReader(csvPath, Encoding.UTF8);
+        var headerLine = await reader.ReadLineAsync();
+        if (string.IsNullOrEmpty(headerLine))
+        {
+            return false;
+        }
+        
+        var csvHeaders = headerLine.Split(',').Select(h => h.Trim()).ToList();
+        
+        // テーブルのカラム情報を取得
+        var columnSql = @"
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = @schemaName 
+            AND table_name = @tableName
+            ORDER BY ordinal_position";
+        
+        await using var cmd = new NpgsqlCommand(columnSql, conn);
+        cmd.Parameters.AddWithValue("@schemaName", schemaName);
+        cmd.Parameters.AddWithValue("@tableName", tableName);
+        
+        await using var reader2 = await cmd.ExecuteReaderAsync();
+        var tableColumns = new List<string>();
+        
+        while (await reader2.ReadAsync())
+        {
+            tableColumns.Add(reader2.GetString(0));
+        }
+        
+        // カラム数の比較（オプション）
+        return csvHeaders.Count == tableColumns.Count;
+    }
+
+    // /// <summary>
+    // /// CSV インポート（TRUNCATE + COPY）
+    // /// </summary>
+    // public async Task ImportTableFromCsvAsync(string connectionString, string schemaName, string tableName, string csvPath, IProgress<string>? progress = null)
+    // {
+    //     await using var conn = new NpgsqlConnection(connectionString);
+    //     await conn.OpenAsync();
+    //
+    //     progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' をクリアしています...");
+    //
+    //     // TRUNCATE
+    //     var truncateSql = $"TRUNCATE TABLE {schemaName}.{tableName}";
+    //     await using var truncateCmd = new NpgsqlCommand(truncateSql, conn);
+    //     await truncateCmd.ExecuteNonQueryAsync();
+    //
+    //     progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' にデータをインポートしています...");
+    //
+    //     // COPY FROM
+    //     // var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true)";
+    //     var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true, DELIMITER ',', QUOTE '\"')";
+    //     await using var writer = conn.BeginBinaryImport(copySql);
+    //
+    //     // await using var reader = new StreamReader(csvPath, Encoding.UTF8);
+    //     using var reader = new StreamReader(csvPath, Encoding.UTF8);
+    //     string? headerLine = await reader.ReadLineAsync(); // ヘッダー行をスキップ
+    //
+    //     string? line;
+    //     while ((line = await reader.ReadLineAsync()) != null)
+    //     {
+    //         if (string.IsNullOrWhiteSpace(line)) continue;
+    //
+    //         var values = ParseCsvLine(line);
+    //         writer.StartRow();
+    //         foreach (var value in values)
+    //         {
+    //             if (string.IsNullOrEmpty(value))
+    //                 writer.WriteNull();
+    //             else
+    //                 writer.Write(value);
+    //         }
+    //     }
+    //
+    //     await writer.CompleteAsync();
+    //     progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のインポートが完了しました。");
+    // }
 
     private static string EscapeCsvValue(string value)
     {

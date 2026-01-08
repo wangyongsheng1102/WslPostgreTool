@@ -1,7 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WslPostgreTool.ViewModels"
-        xmlns:m="using:WslPostgreTool.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:WslPostgreTool.Converters"
@@ -9,7 +8,7 @@
         d:DesignWidth="1400"
         d:DesignHeight="900"
         x:Class="WslPostgreTool.Views.MainView"
-        x:DataContext="{d:DesignInstance vm:MainViewModel, IsDesignTimeCreatable=False}"
+        x:DataType="vm:MainViewModel"
         Title="WSL PostgreSQL 管理ツール"
         Width="1400"
         Height="900"
@@ -17,6 +16,10 @@
         MinHeight="700"
         WindowStartupLocation="CenterScreen"
         Background="#F8F9FA">
+    
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
 
     <Window.Resources>
         <converters:GreaterThanConverter x:Key="GreaterThanConverter"/>
@@ -54,6 +57,7 @@
             <Setter Property="MinWidth" Value="130"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"></Setter>
         </Style>
 
         <Style Selector="Button.primary">
@@ -139,8 +143,8 @@
         </Style>
 
         <Style Selector="TabItem:selected">
-            <Setter Property="Foreground" Value="#0D6EFD"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="DeepSkyBlue"/>
+            <Setter Property="FontWeight" Value="DemiBold"/>
         </Style>
 
         <!-- ListBox样式 -->
@@ -432,66 +436,8 @@
                             </Grid>
                         </Border>
 
-                        <!-- 导出和导入区域 -->
-                        <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="0,0,0,18">
-                            <!-- 导出卡片 -->
-                            <Border Grid.Column="0" Classes="card" Margin="0,0,12,0">
-                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-                                    <TextBlock Grid.Row="0"
-                                              Text="📤 エクスポート"
-                                              Classes="section-title"/>
-                                    <TextBox Grid.Row="1"
-                                            Text="{Binding ImportExportViewModel.ExportFolderPath}"
-                                            Watermark="エクスポートフォルダを選択してください"
-                                            Margin="0,0,0,10"/>
-                                    <Button Grid.Row="2"
-                                           Content="📁 フォルダを選択"
-                                           Command="{Binding ImportExportViewModel.SelectExportFolderCommand}"
-                                           Classes="primary"
-                                           Margin="0,0,0,14"/>
-                                    <StackPanel Grid.Row="3"
-                                               Orientation="Horizontal"
-                                               Margin="0,0,0,14">
-                                        <Button Content="✓ 全選択"
-                                               Command="{Binding ImportExportViewModel.SelectAllTablesCommand}"
-                                               Margin="0,0,10,0"/>
-                                        <Button Content="✗ 全解除"
-                                               Command="{Binding ImportExportViewModel.DeselectAllTablesCommand}"/>
-                                    </StackPanel>
-                                    <Button Grid.Row="4"
-                                           Content="▶ エクスポート実行"
-                                           Command="{Binding ImportExportViewModel.ExportTablesCommand}"
-                                           IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
-                                           Classes="success"/>
-                                </Grid>
-                            </Border>
-
-                            <!-- 导入卡片 -->
-                            <Border Grid.Column="1" Classes="card" Margin="12,0,0,0">
-                                <Grid RowDefinitions="Auto,Auto,Auto,Auto">
-                                    <TextBlock Grid.Row="0"
-                                              Text="📥 インポート"
-                                              Classes="section-title"/>
-                                    <TextBox Grid.Row="1"
-                                            Text="{Binding ImportExportViewModel.ImportFolderPath}"
-                                            Watermark="インポートフォルダを選択してください"
-                                            Margin="0,0,0,10"/>
-                                    <Button Grid.Row="2"
-                                           Content="📁 フォルダを選択"
-                                           Command="{Binding ImportExportViewModel.SelectImportFolderCommand}"
-                                           Classes="primary"
-                                           Margin="0,0,0,14"/>
-                                    <Button Grid.Row="3"
-                                           Content="▶ インポート実行"
-                                           Command="{Binding ImportExportViewModel.ImportTablesCommand}"
-                                           IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
-                                           Classes="success"/>
-                                </Grid>
-                            </Border>
-                        </Grid>
-
                         <!-- 表格列表 -->
-                        <Border Grid.Row="3" Classes="card">
+                        <Border Grid.Row="2" Classes="card">
                             <Grid RowDefinitions="Auto,*">
                                 <TextBlock Grid.Row="0"
                                           Text="テーブル一覧"
@@ -532,6 +478,87 @@
                                 </ListBox>
                             </Grid>
                         </Border>
+                        
+                        <!-- 导出和导入区域 -->
+                        <Grid Grid.Row="3" ColumnDefinitions="*,*" Margin="0,0,0,10">
+                            <!-- 导出卡片 -->
+                            <Border Grid.Column="0" Classes="card" Margin="0,0,0,0">
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0"
+                                              Text="📤 エクスポート"
+                                              Classes="section-title"/>
+                                    <Grid Grid.Row="1"
+                                          Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <!-- TextBox 占 70% 空间 -->
+                                            <ColumnDefinition Width="8*" />
+                                            <!-- Button 占 30% 空间 -->
+                                            <ColumnDefinition Width="2*" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <TextBox Grid.Column="0" Text="{Binding ImportExportViewModel.ExportFolderPath}"
+                                                                Watermark="エクスポートフォルダを選択してください"
+                                                                Margin="0,0,0,14"
+                                                                HorizontalAlignment="Stretch"/>
+                                        <Button Grid.Column="1" Content="📁 フォルダを選択"
+                                                               Command="{Binding ImportExportViewModel.SelectExportFolderCommand}"
+                                                               Classes="primary"
+                                                               Margin="20,0,0,14"
+                                                               HorizontalAlignment="Stretch"/>
+                                    </Grid>
+                                    
+                                    <StackPanel Grid.Row="2"
+                                               Orientation="Horizontal"
+                                               Margin="0,0,0,10">
+                                        <Button Content="✓ 全選択"
+                                               Command="{Binding ImportExportViewModel.SelectAllTablesCommand}"
+                                               Margin="0,0,10,0"/>
+                                        <Button Content="✗ 全解除"
+                                               Command="{Binding ImportExportViewModel.DeselectAllTablesCommand}"
+                                               Margin="0,0,10,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Row="3"
+                                           Content="▶ エクスポート実行"
+                                           Command="{Binding ImportExportViewModel.ExportTablesCommand}"
+                                           IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
+                                           Classes="success"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- 导入卡片 -->
+                            <Border Grid.Column="1" Classes="card" Margin="12,0,0,0">
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0"
+                                              Text="📥 インポート"
+                                              Classes="section-title"/>
+                                    <Grid Grid.Row="1"
+                                          Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <!-- TextBox 占 80% 空间 -->
+                                            <ColumnDefinition Width="8*" />
+                                            <!-- Button 占 20% 空间 -->
+                                            <ColumnDefinition Width="2*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" 
+                                                 Text="{Binding ImportExportViewModel.ImportFolderPath}"
+                                                 Watermark="インポートフォルダを選択してください"
+                                                 Margin="0,0,0,14"
+                                                 HorizontalAlignment="Stretch"/>
+                                        <Button Grid.Column="1" 
+                                                Content="📁 フォルダを選択"
+                                                Command="{Binding ImportExportViewModel.SelectImportFolderCommand}"
+                                                Classes="primary"
+                                                Margin="20,0,0,14"
+                                                HorizontalAlignment="Stretch"/>
+                                    </Grid>
+                                    <Button Grid.Row="2"
+                                           Content="▶ インポート実行"
+                                           Command="{Binding ImportExportViewModel.ImportTablesCommand}"
+                                           IsEnabled="{Binding !ImportExportViewModel.IsProcessing}"
+                                           Classes="success"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
 
                         <!-- 进度条 -->
                         <Border Grid.Row="4"
@@ -601,7 +628,8 @@
                                         <Button Grid.Column="1"
                                                Content="📁 選択"
                                                Command="{Binding CompareViewModel.SelectOldFolderCommand}"
-                                               Classes="primary"/>
+                                               Classes="primary"
+                                               Margin="0,0,12,0"/>
                                     </Grid>
                                 </StackPanel>
 
@@ -620,7 +648,8 @@
                                         <Button Grid.Column="1"
                                                Content="📁 選択"
                                                Command="{Binding CompareViewModel.SelectNewFolderCommand}"
-                                               Classes="primary"/>
+                                               Classes="primary"
+                                               Margin="0,0,12,0"/>
                                     </Grid>
                                 </StackPanel>
                             </Grid>
@@ -639,7 +668,8 @@
                                            Command="{Binding CompareViewModel.SelectAllCsvFilesCommand}"
                                            Margin="0,0,10,0"/>
                                     <Button Content="✗ 全解除"
-                                           Command="{Binding CompareViewModel.DeselectAllCsvFilesCommand}"/>
+                                           Command="{Binding CompareViewModel.DeselectAllCsvFilesCommand}"
+                                           Margin="0,0,10,0"/>
                                 </StackPanel>
                                 <TextBlock Grid.Row="2"
                                           Text="{Binding CompareViewModel.SelectedCsvFileCount, StringFormat='選択中: {0} ファイル'}"
@@ -674,7 +704,7 @@
 
                         <!-- 导出设置 -->
                         <Border Grid.Row="4" Classes="card">
-                            <Grid RowDefinitions="Auto,Auto">
+                            <Grid RowDefinitions="Auto,Auto,Auto">
                                 <TextBlock Grid.Row="0"
                                           Text="エクスポート設定"
                                           Classes="section-title"/>
@@ -686,22 +716,20 @@
                                     <Button Grid.Column="1"
                                            Content="📁 ファイルを選択"
                                            Command="{Binding CompareViewModel.SelectExportFileCommand}"
-                                           Classes="primary"/>
+                                           Classes="primary"
+                                           Margin="0,0,12,0"/>
                                 </Grid>
+                                <Button Grid.Row="2" Content="▶ 比較実行"
+                                        Command="{Binding CompareViewModel.CompareCsvFilesCommand}"
+                                        IsEnabled="{Binding !CompareViewModel.IsProcessing}"
+                                        Classes="success"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        FontSize="17"
+                                        FontWeight="SemiBold"
+                                        Padding="24,14,20,20"
+                                        Margin="0,20,0,0"/>
                             </Grid>
-                        </Border>
-
-                        <!-- 执行按钮 -->
-                        <Border Grid.Row="5" Classes="card">
-                            <Button Content="▶ 比較実行"
-                                   Command="{Binding CompareViewModel.CompareCsvFilesCommand}"
-                                   IsEnabled="{Binding !CompareViewModel.IsProcessing}"
-                                   Classes="success"
-                                   HorizontalAlignment="Stretch"
-                                   HorizontalContentAlignment="Center"
-                                   FontSize="17"
-                                   FontWeight="SemiBold"
-                                   Padding="24,14"/>
                         </Border>
 
                         <!-- 进度条 -->
@@ -729,22 +757,49 @@
                BorderThickness="0,2,0,0"
                Padding="18,14"
                MaxHeight="200">
-            <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0"
-                          Text="📋 システムログ"
-                          FontWeight="Bold"
-                          FontSize="14"
-                          Foreground="#495057"
-                          Margin="0,0,0,10"/>
-                <ScrollViewer Grid.Row="1"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Disabled">
-                    <TextBlock Text="{Binding LogMessage}"
-                              TextWrapping="Wrap"
-                              Foreground="#212529"
-                              FontFamily="Consolas, 'Courier New', monospace"
-                              FontSize="12"
-                              LineHeight="20"/>
+            <Grid RowDefinitions="Auto,*" x:Name="LogGrid">
+                <StackPanel Grid.Row="0"
+                            Orientation="Horizontal"
+                            Margin="0,0,0,10">
+                    <TextBlock Text="📋 システムログ"
+                               FontWeight="Bold"
+                               FontSize="14"
+                               Foreground="#495057"/>
+            
+                    <!-- 添加清空日志按钮 -->
+                    <Button Content="🗑️ クリア"
+                            Command="{Binding ClearLogsCommand}"
+                            Margin="10,0,0,0"
+                            Padding="0,0,0,0"
+                            FontSize="12"
+                            Classes="secondary"
+                            HorizontalContentAlignment="Center"/>
+                </StackPanel>
+                <!-- 修改 ScrollViewer 内容为 ItemsControl -->
+                <ScrollViewer Grid.Row="1" x:Name="LogScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding LogMessages}">
+                        <!-- 启用虚拟化，提升性能 -->
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                
+                        <!-- 定义每一条日志如何显示 -->
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           Foreground="#212529"
+                                           FontFamily="Consolas, 'Courier New', monospace"
+                                           FontSize="12"
+                                           LineHeight="20"
+                                           Margin="0,0,0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </ScrollViewer>
             </Grid>
         </Border>
