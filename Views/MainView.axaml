@@ -198,15 +198,19 @@
                    Background="Transparent">
             <!-- DB設定タブ -->
             <TabItem Header="📋 DB設定">
-                <ScrollViewer>
-                    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalAlignment="Stretch">
+                    <Grid Margin="24" 
+                          RowDefinitions="Auto,Auto,Auto"
+                          HorizontalAlignment="Stretch">
                         <TextBlock Grid.Row="0"
                                   Text="データベース接続設定"
                                   Classes="title"/>
 
                         <!-- 操作按钮区域 -->
-                        <Border Grid.Row="1" Classes="card">
-                            <StackPanel Orientation="Horizontal">
+                        <Border Grid.Row="1" Classes="card" HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
                                 <TextBlock Text="{Binding Connections.Count, StringFormat='接続数: {0}'}"
                                           Margin="0,0,24,0"
                                           VerticalAlignment="Center"
@@ -222,180 +226,195 @@
                         </Border>
 
                         <!-- 连接列表 -->
-                        <Border Grid.Row="2" Classes="card">
-                            <Grid RowDefinitions="Auto,*">
+                        <Border Grid.Row="2" Classes="card" HorizontalAlignment="Stretch">
+                            <Grid RowDefinitions="Auto,*" HorizontalAlignment="Stretch">
                                 <TextBlock Grid.Row="0"
                                           Text="接続一覧"
                                           Classes="section-title"/>
 
-                                <!-- 表头 -->
-                                <Border Grid.Row="1"
-                                       Background="#F8F9FA"
-                                       Height="44"
-                                       VerticalAlignment="Top"
-                                       Margin="0,0,0,12"
-                                       BorderBrush="#DEE2E6"
-                                       BorderThickness="0,0,0,2"
-                                       CornerRadius="6,6,0,0">
-                                    <Grid ColumnDefinitions="150,120,80,120,120,120,150,100">
-                                        <TextBlock Grid.Column="0"
-                                                  Text="設定名"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                        <TextBlock Grid.Column="1"
-                                                  Text="ホスト"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                        <TextBlock Grid.Column="2"
-                                                  Text="ポート"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                        <TextBlock Grid.Column="3"
-                                                  Text="データベース"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                        <TextBlock Grid.Column="4"
-                                                  Text="ユーザー"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                        <TextBlock Grid.Column="5"
-                                                  Text="パスワード"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                        <TextBlock Grid.Column="6"
-                                                  Text="WSL"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                        <TextBlock Grid.Column="7"
-                                                  Text="操作"
-                                                  FontWeight="Bold"
-                                                  FontSize="13"
-                                                  Margin="12,0"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#495057"/>
-                                    </Grid>
-                                </Border>
+                                <!-- 表头和数据行容器 -->
+                                <Grid Grid.Row="1" RowDefinitions="Auto,*" HorizontalAlignment="Stretch">
+                                    <!-- 表头 -->
+                                    <Border Grid.Row="0"
+                                           Background="#F8F9FA"
+                                           Height="44"
+                                           VerticalAlignment="Top"
+                                           Margin="0,0,0,0"
+                                           BorderBrush="#DEE2E6"
+                                           BorderThickness="0,0,0,2"
+                                           CornerRadius="6,6,0,0"
+                                           HorizontalAlignment="Stretch">
+                                        <Grid ColumnDefinitions="2*,2*,1*,2*,2*,2*,2*,1.5*" 
+                                              HorizontalAlignment="Stretch"
+                                              Margin="0">
+                                            <TextBlock Grid.Column="0"
+                                                      Text="設定名"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                            <TextBlock Grid.Column="1"
+                                                      Text="ホスト"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                            <TextBlock Grid.Column="2"
+                                                      Text="ポート"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                            <TextBlock Grid.Column="3"
+                                                      Text="データベース"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                            <TextBlock Grid.Column="4"
+                                                      Text="ユーザー"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                            <TextBlock Grid.Column="5"
+                                                      Text="パスワード"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                            <TextBlock Grid.Column="6"
+                                                      Text="WSL"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                            <TextBlock Grid.Column="7"
+                                                      Text="操作"
+                                                      FontWeight="Bold"
+                                                      FontSize="13"
+                                                      Margin="12,0"
+                                                      VerticalAlignment="Center"
+                                                      Foreground="#495057"/>
+                                        </Grid>
+                                    </Border>
 
-                                <!-- 数据行 -->
-                                <ScrollViewer Grid.Row="1"
-                                            Margin="0,44,0,0"
-                                            VerticalScrollBarVisibility="Auto">
-                                    <ItemsControl ItemsSource="{Binding DbConfigViewModel.Connections}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Margin="0,0,0,2"
-                                                       Background="White"
-                                                       BorderBrush="#E9ECEF"
-                                                       BorderThickness="0,0,0,1"
-                                                       Padding="12,10">
-                                                    <Grid ColumnDefinitions="150,120,80,120,120,120,150,100">
-                                                        <!-- 設定名 -->
-                                                        <TextBox Grid.Column="0"
-                                                                Text="{Binding ConfigurationName, Mode=TwoWay}"
-                                                                Margin="6,0"
-                                                                BorderThickness="1"
-                                                                BorderBrush="#CED4DA"
-                                                                Padding="10,8"
-                                                                FontSize="13"
-                                                                CornerRadius="4"/>
+                                    <!-- 数据行 -->
+                                    <ScrollViewer Grid.Row="1"
+                                                VerticalScrollBarVisibility="Auto"
+                                                HorizontalScrollBarVisibility="Disabled"
+                                                HorizontalAlignment="Stretch">
+                                        <ItemsControl ItemsSource="{Binding DbConfigViewModel.Connections}" HorizontalAlignment="Stretch">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Margin="0,0,0,2"
+                                                           Background="White"
+                                                           BorderBrush="#E9ECEF"
+                                                           BorderThickness="0,0,0,1"
+                                                           Padding="12,10"
+                                                           HorizontalAlignment="Stretch">
+                                                        <Grid ColumnDefinitions="2*,2*,1*,2*,2*,2*,2*,1.5*" HorizontalAlignment="Stretch">
+                                                            <!-- 設定名 -->
+                                                            <TextBox Grid.Column="0"
+                                                                    Text="{Binding ConfigurationName, Mode=TwoWay}"
+                                                                    Margin="6,0"
+                                                                    BorderThickness="1"
+                                                                    BorderBrush="#CED4DA"
+                                                                    Padding="10,8"
+                                                                    FontSize="13"
+                                                                    CornerRadius="4"
+                                                                    HorizontalAlignment="Stretch"/>
 
-                                                        <!-- ホスト -->
-                                                        <TextBox Grid.Column="1"
-                                                                Text="{Binding Host, Mode=TwoWay}"
-                                                                Margin="6,0"
-                                                                BorderThickness="1"
-                                                                BorderBrush="#CED4DA"
-                                                                Padding="10,8"
-                                                                FontSize="13"
-                                                                CornerRadius="4"/>
+                                                            <!-- ホスト -->
+                                                            <TextBox Grid.Column="1"
+                                                                    Text="{Binding Host, Mode=TwoWay}"
+                                                                    Margin="6,0"
+                                                                    BorderThickness="1"
+                                                                    BorderBrush="#CED4DA"
+                                                                    Padding="10,8"
+                                                                    FontSize="13"
+                                                                    CornerRadius="4"
+                                                                    HorizontalAlignment="Stretch"/>
 
-                                                        <!-- ポート -->
-                                                        <TextBox Grid.Column="2"
-                                                                Text="{Binding Port, Mode=TwoWay}"
-                                                                Margin="6,0"
-                                                                BorderThickness="1"
-                                                                BorderBrush="#CED4DA"
-                                                                Padding="10,8"
-                                                                FontSize="13"
-                                                                CornerRadius="4"/>
+                                                            <!-- ポート -->
+                                                            <TextBox Grid.Column="2"
+                                                                    Text="{Binding Port, Mode=TwoWay}"
+                                                                    Margin="6,0"
+                                                                    BorderThickness="1"
+                                                                    BorderBrush="#CED4DA"
+                                                                    Padding="10,8"
+                                                                    FontSize="13"
+                                                                    CornerRadius="4"
+                                                                    HorizontalAlignment="Stretch"/>
 
-                                                        <!-- データベース -->
-                                                        <TextBox Grid.Column="3"
-                                                                Text="{Binding Database, Mode=TwoWay}"
-                                                                Margin="6,0"
-                                                                BorderThickness="1"
-                                                                BorderBrush="#CED4DA"
-                                                                Padding="10,8"
-                                                                FontSize="13"
-                                                                CornerRadius="4"/>
+                                                            <!-- データベース -->
+                                                            <TextBox Grid.Column="3"
+                                                                    Text="{Binding Database, Mode=TwoWay}"
+                                                                    Margin="6,0"
+                                                                    BorderThickness="1"
+                                                                    BorderBrush="#CED4DA"
+                                                                    Padding="10,8"
+                                                                    FontSize="13"
+                                                                    CornerRadius="4"
+                                                                    HorizontalAlignment="Stretch"/>
 
-                                                        <!-- ユーザー -->
-                                                        <TextBox Grid.Column="4"
-                                                                Text="{Binding User, Mode=TwoWay}"
-                                                                Margin="6,0"
-                                                                BorderThickness="1"
-                                                                BorderBrush="#CED4DA"
-                                                                Padding="10,8"
-                                                                FontSize="13"
-                                                                CornerRadius="4"/>
+                                                            <!-- ユーザー -->
+                                                            <TextBox Grid.Column="4"
+                                                                    Text="{Binding User, Mode=TwoWay}"
+                                                                    Margin="6,0"
+                                                                    BorderThickness="1"
+                                                                    BorderBrush="#CED4DA"
+                                                                    Padding="10,8"
+                                                                    FontSize="13"
+                                                                    CornerRadius="4"
+                                                                    HorizontalAlignment="Stretch"/>
 
-                                                        <!-- パスワード -->
-                                                        <TextBox Grid.Column="5"
-                                                                Text="{Binding Password, Mode=TwoWay}"
-                                                                Margin="6,0"
-                                                                BorderThickness="1"
-                                                                BorderBrush="#CED4DA"
-                                                                Padding="10,8"
-                                                                FontSize="13"
-                                                                CornerRadius="4"/>
+                                                            <!-- パスワード -->
+                                                            <TextBox Grid.Column="5"
+                                                                    Text="{Binding Password, Mode=TwoWay}"
+                                                                    Margin="6,0"
+                                                                    BorderThickness="1"
+                                                                    BorderBrush="#CED4DA"
+                                                                    Padding="10,8"
+                                                                    FontSize="13"
+                                                                    CornerRadius="4"
+                                                                    HorizontalAlignment="Stretch"/>
 
-                                                        <!-- WSLディストリビューション -->
-                                                        <ComboBox Grid.Column="6"
-                                                                 ItemsSource="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.WslDistributions}"
-                                                                 SelectedItem="{Binding WslDistro, Mode=TwoWay}"
-                                                                 Margin="6,0"
-                                                                 Padding="10,8"
-                                                                 FontSize="13"
-                                                                 CornerRadius="4"/>
+                                                            <!-- WSLディストリビューション -->
+                                                            <ComboBox Grid.Column="6"
+                                                                     ItemsSource="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.WslDistributions}"
+                                                                     SelectedItem="{Binding WslDistro, Mode=TwoWay}"
+                                                                     Margin="6,0"
+                                                                     Padding="10,8"
+                                                                     FontSize="13"
+                                                                     CornerRadius="4"
+                                                                     HorizontalAlignment="Stretch"/>
 
-                                                        <!-- 操作 -->
-                                                        <Button Grid.Column="7"
-                                                               Content="🗑️ 削除"
-                                                               Command="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.RemoveConnectionCommand}"
-                                                               CommandParameter="{Binding}"
-                                                               Classes="danger"
-                                                               HorizontalAlignment="Left"
-                                                               Padding="10,8"
-                                                               FontSize="12"
-                                                               Margin="6,0"
-                                                               MinWidth="80"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
+                                                            <!-- 操作 -->
+                                                            <Button Grid.Column="7"
+                                                                   Content="🗑️ 削除"
+                                                                   Command="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.RemoveConnectionCommand}"
+                                                                   CommandParameter="{Binding}"
+                                                                   Classes="danger"
+                                                                   HorizontalAlignment="Stretch"
+                                                                   Padding="10,8"
+                                                                   FontSize="12"
+                                                                   Margin="6,0"
+                                                                   MinWidth="80"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
                             </Grid>
                         </Border>
                     </Grid>
@@ -404,8 +423,12 @@
 
             <!-- インポート・エクスポートタブ -->
             <TabItem Header="📤 インポート・エクスポート">
-                <ScrollViewer>
-                    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalAlignment="Stretch">
+                    <Grid Margin="24" 
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                          HorizontalAlignment="Stretch">
                         <TextBlock Grid.Row="0"
                                   Text="データベースインポート・エクスポート"
                                   Classes="title"/>
@@ -579,8 +602,12 @@
 
             <!-- データ比較タブ -->
             <TabItem Header="🔍 データ比較">
-                <ScrollViewer>
-                    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalAlignment="Stretch">
+                    <Grid Margin="24" 
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                          HorizontalAlignment="Stretch">
                         <TextBlock Grid.Row="0"
                                   Text="CSV ファイル比較"
                                   Classes="title"/>
