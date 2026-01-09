@@ -22,6 +22,8 @@ public partial class ImportExportViewModel : ViewModelBase
 
     [ObservableProperty]
     private ObservableCollection<TableInfo> _tables = new();
+    
+    public int SelectedTableCount => Tables.Count(f => f.IsSelected);
 
     [ObservableProperty]
     private int _progressValue;
@@ -61,8 +63,17 @@ public partial class ImportExportViewModel : ViewModelBase
             Tables.Clear();
             foreach (var table in tables)
             {
+                table.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == nameof(TableInfo.IsSelected))
+                    {
+                        OnPropertyChanged(nameof(SelectedTableCount));
+                    }
+                };
                 Tables.Add(table);
             }
+
+            OnPropertyChanged(nameof(SelectedTableCount));
 
             _mainViewModel.AppendLog($"[完了] {Tables.Count} 個のテーブルを取得しました。");
         }
@@ -83,6 +94,7 @@ public partial class ImportExportViewModel : ViewModelBase
         {
             table.IsSelected = true;
         }
+        OnPropertyChanged(nameof(SelectedTableCount));
     }
 
     [RelayCommand]
@@ -92,6 +104,7 @@ public partial class ImportExportViewModel : ViewModelBase
         {
             table.IsSelected = false;
         }
+        OnPropertyChanged(nameof(SelectedTableCount));
     }
 
     [RelayCommand]

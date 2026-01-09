@@ -1,6 +1,8 @@
 using System;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Threading;
+using WslPostgreTool.Models;
 using WslPostgreTool.ViewModels;
 
 namespace WslPostgreTool.Views;
@@ -42,6 +44,24 @@ public partial class MainView : Window
                                  scrollViewer.Extent.Height - scrollViewer.Viewport.Height - 1;
                 _shouldAutoScroll = isAtBottom;
             };
+        }
+        
+        
+    }
+    
+    private void OnItemPointerPressed(object sender, PointerPressedEventArgs e)
+    {
+        if (sender is Border border && border.DataContext is CsvFileInfo fileInfo)
+        {
+            // 切换选中状态
+            fileInfo.IsSelected = !fileInfo.IsSelected;
+            e.Handled = true;
+        }
+        if (sender is Border border1 && border1.DataContext is TableInfo fileInfo1)
+        {
+            // 切换选中状态
+            fileInfo1.IsSelected = !fileInfo1.IsSelected;
+            e.Handled = true;
         }
     }
 }

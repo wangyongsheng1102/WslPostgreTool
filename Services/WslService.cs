@@ -41,11 +41,10 @@ public class WslService
             var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             foreach (var line in lines)
             {
-                if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("NAME", StringComparison.OrdinalIgnoreCase))
-                {
-                    var cleaned = Regex.Replace(line, @"[\0\s]", "");
-                    distributions.Add(cleaned.Trim());
-                }
+                if (string.IsNullOrWhiteSpace(line.Replace('\0', ' ').Trim()) ||
+                    line.StartsWith("NAME", StringComparison.OrdinalIgnoreCase)) continue;
+                var cleaned = Regex.Replace(line, @"[\0\s]", "");
+                distributions.Add(cleaned.Trim());
             }
         }
         catch (Exception)

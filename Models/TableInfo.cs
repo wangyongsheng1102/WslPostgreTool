@@ -5,7 +5,7 @@ namespace WslPostgreTool.Models;
 /// <summary>
 /// テーブル情報モデル
 /// </summary>
-public partial class TableInfo:ObservableObject
+public partial class TableInfo : ObservableObject
 {
     
     public string SchemaName { get; set; } = string.Empty;

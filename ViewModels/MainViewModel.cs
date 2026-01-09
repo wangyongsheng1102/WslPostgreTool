@@ -12,6 +12,11 @@ namespace WslPostgreTool.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     [ObservableProperty]
+    private string _appVersion = "1.0.0";
+    [ObservableProperty]
+    private string _appAuthor = "wangys";
+    
+    [ObservableProperty]
     private ObservableCollection<DatabaseConnection> _connections = new();
 
     [ObservableProperty]

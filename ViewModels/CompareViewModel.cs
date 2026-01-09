@@ -23,6 +23,9 @@ public partial class CompareViewModel : ViewModelBase
     private DatabaseConnection? _selectedConnection;
 
     [ObservableProperty]
+    private string _baseFolderPath = string.Empty;
+    
+    [ObservableProperty]
     private string _oldFolderPath = string.Empty;
 
     [ObservableProperty]
@@ -30,8 +33,18 @@ public partial class CompareViewModel : ViewModelBase
 
     [ObservableProperty]
     private ObservableCollection<CsvFileInfo> _csvFileInfos = new();
+    
+    [ObservableProperty]
+    private ObservableCollection<CsvFileInfo> _csvFileInfosOld = new();
+    
+    [ObservableProperty]
+    private ObservableCollection<CsvFileInfo> _csvFileInfosNew = new();
 
     public int SelectedCsvFileCount => CsvFileInfos.Count(f => f.IsSelected);
+    
+    public int SelectedCsvFileOldCount => CsvFileInfosOld.Count(f => f.IsSelected);
+    
+    public int SelectedCsvFileNewCount => CsvFileInfosNew.Count(f => f.IsSelected);
 
     [ObservableProperty]
     private int _progressValue;
@@ -52,6 +65,26 @@ public partial class CompareViewModel : ViewModelBase
         _mainViewModel = mainViewModel;
     }
 
+    [RelayCommand]
+    private async Task SelectBaseFolder()
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "更新前フォルダを選択"
+        };
+
+        var window = GetMainWindow();
+        if (window != null)
+        {
+            var result = await dialog.ShowAsync(window);
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                BaseFolderPath = result;
+                LoadCsvFilePairs();
+            }
+        }
+    }
+    
     [RelayCommand]
     private async Task SelectOldFolder()
     {
@@ -94,7 +127,7 @@ public partial class CompareViewModel : ViewModelBase
 
     private void LoadCsvFilePairs()
     {
-        if (string.IsNullOrWhiteSpace(OldFolderPath) || string.IsNullOrWhiteSpace(NewFolderPath))
+        if (string.IsNullOrEmpty(BaseFolderPath) || (string.IsNullOrWhiteSpace(OldFolderPath) && string.IsNullOrWhiteSpace(NewFolderPath)))
         {
             return;
         }
