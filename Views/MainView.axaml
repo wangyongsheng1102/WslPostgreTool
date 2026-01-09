@@ -569,8 +569,8 @@
                                             <TextBox Grid.Column="0" Text="{Binding ImportExportViewModel.ExportFolderPath}"
                                                                     Watermark="エクスポートフォルダを選択してください"
                                                                     Margin="0,0,0,14"
-                                                                    HorizontalAlignment="Stretch"
-                                                                    IsReadOnly="True"/>
+                                                                    HorizontalAlignment="Stretch"/> 
+                                                                    <!-- IsReadOnly="True" -->
                                             <Button Grid.Column="1" Content="📁 選択"
                                                                    Command="{Binding ImportExportViewModel.SelectExportFolderCommand}"
                                                                    Classes="primary"
@@ -604,8 +604,8 @@
                                                      Text="{Binding ImportExportViewModel.ImportFolderPath}"
                                                      Watermark="インポートフォルダを選択してください"
                                                      Margin="0,0,0,14"
-                                                     HorizontalAlignment="Stretch"
-                                                     IsReadOnly="True"/>
+                                                     HorizontalAlignment="Stretch"/>
+                                                     <!-- IsReadOnly="True" -->
                                             <Button Grid.Column="1" 
                                                     Content="📁 選択"
                                                     Command="{Binding ImportExportViewModel.SelectImportFolderCommand}"
@@ -698,8 +698,8 @@
                                             <TextBox Grid.Column="0"
                                                      Text="{Binding CompareViewModel.BaseFolderPath}"
                                                      Watermark="更新前フォルダを選択してください"
-                                                     Margin="0,0,12,0"
-                                                     IsReadOnly="True"/>
+                                                     Margin="0,0,12,0"/>
+                                                     <!-- IsReadOnly="True" -->
                                             <Button Grid.Column="1"
                                                     Content="📁 選択"
                                                     Command="{Binding CompareViewModel.SelectBaseFolderCommand}"
@@ -718,8 +718,8 @@
                                             <TextBox Grid.Column="0"
                                                     Text="{Binding CompareViewModel.OldFolderPath}"
                                                     Watermark="旧フォルダを選択してください"
-                                                    Margin="0,0,12,0"
-                                                    IsReadOnly="True"/>
+                                                    Margin="0,0,12,0"/>
+                                                    <!-- IsReadOnly="True" -->
                                             <Button Grid.Column="1"
                                                    Content="📁 選択"
                                                    Command="{Binding CompareViewModel.SelectOldFolderCommand}"
@@ -738,8 +738,8 @@
                                             <TextBox Grid.Column="0"
                                                     Text="{Binding CompareViewModel.NewFolderPath}"
                                                     Watermark="新フォルダを選択してください"
-                                                    Margin="0,0,12,0"
-                                                    IsReadOnly="True"/>
+                                                    Margin="0,0,12,0"/>
+                                                    <!-- IsReadOnly="True" -->
                                             <Button Grid.Column="1"
                                                    Content="📁 選択"
                                                    Command="{Binding CompareViewModel.SelectNewFolderCommand}"
