@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using WslPostgreTool.Models;
 using WslPostgreTool.Services;
 
@@ -24,7 +24,7 @@ public partial class CompareViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _baseFolderPath = string.Empty;
-    
+
     [ObservableProperty]
     private string _oldFolderPath = string.Empty;
 
@@ -33,18 +33,6 @@ public partial class CompareViewModel : ViewModelBase
 
     [ObservableProperty]
     private ObservableCollection<CsvFileInfo> _csvFileInfos = new();
-    
-    [ObservableProperty]
-    private ObservableCollection<CsvFileInfo> _csvFileInfosOld = new();
-    
-    [ObservableProperty]
-    private ObservableCollection<CsvFileInfo> _csvFileInfosNew = new();
-
-    public int SelectedCsvFileCount => CsvFileInfos.Count(f => f.IsSelected);
-    
-    public int SelectedCsvFileOldCount => CsvFileInfosOld.Count(f => f.IsSelected);
-    
-    public int SelectedCsvFileNewCount => CsvFileInfosNew.Count(f => f.IsSelected);
 
     [ObservableProperty]
     private int _progressValue;
@@ -54,6 +42,8 @@ public partial class CompareViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _exportFilePath = string.Empty;
+
+    public int SelectedCsvFileCount => CsvFileInfos.Count(f => f.IsSelected);
 
     private readonly CsvCompareService _csvCompareService = new();
     private readonly DatabaseService _databaseService = new();
@@ -84,7 +74,7 @@ public partial class CompareViewModel : ViewModelBase
             }
         }
     }
-    
+
     [RelayCommand]
     private async Task SelectOldFolder()
     {
@@ -127,13 +117,19 @@ public partial class CompareViewModel : ViewModelBase
 
     private void LoadCsvFilePairs()
     {
-        if (string.IsNullOrEmpty(BaseFolderPath) || (string.IsNullOrWhiteSpace(OldFolderPath) && string.IsNullOrWhiteSpace(NewFolderPath)))
+        if (string.IsNullOrWhiteSpace(BaseFolderPath) || 
+            string.IsNullOrWhiteSpace(OldFolderPath) || 
+            string.IsNullOrWhiteSpace(NewFolderPath))
         {
             return;
         }
 
         try
         {
+            var baseFiles = Directory.GetFiles(BaseFolderPath, "*.csv", SearchOption.AllDirectories)
+                .Select(f => Path.GetFileName(f))
+                .ToHashSet();
+
             var oldFiles = Directory.GetFiles(OldFolderPath, "*.csv", SearchOption.AllDirectories)
                 .Select(f => Path.GetFileName(f))
                 .ToHashSet();
@@ -142,8 +138,8 @@ public partial class CompareViewModel : ViewModelBase
                 .Select(f => Path.GetFileName(f))
                 .ToHashSet();
 
-            // 同名ファイルを検出
-            var commonFiles = oldFiles.Intersect(newFiles).OrderBy(f => f).ToList();
+            // 3つのフォルダに共通するファイルを検出
+            var commonFiles = baseFiles.Intersect(oldFiles).Intersect(newFiles).OrderBy(f => f).ToList();
 
             CsvFileInfos.Clear();
             foreach (var file in commonFiles)
@@ -160,11 +156,11 @@ public partial class CompareViewModel : ViewModelBase
             }
 
             OnPropertyChanged(nameof(SelectedCsvFileCount));
-            _mainViewModel.AppendLog($"{CsvFileInfos.Count} 個の同名 CSV ファイルを検出しました。");
+            _mainViewModel.AppendLog($"{CsvFileInfos.Count} 個の共通 CSV ファイルを検出しました。", LogLevel.Info);
         }
         catch (Exception ex)
         {
-            _mainViewModel.AppendLog($"[エラー] ファイルリストの取得に失敗しました: {ex.Message}");
+            _mainViewModel.AppendLog($"[エラー] ファイルリストの取得に失敗しました: {ex.Message}", LogLevel.Error);
         }
     }
 
@@ -188,58 +184,62 @@ public partial class CompareViewModel : ViewModelBase
         OnPropertyChanged(nameof(SelectedCsvFileCount));
     }
 
-
     [RelayCommand]
     private async Task CompareCsvFiles()
     {
         if (SelectedConnection == null)
         {
-            _mainViewModel.AppendLog("[エラー] データベース接続を選択してください。");
+            _mainViewModel.AppendLog("[エラー] データベース接続を選択してください。", LogLevel.Error);
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(OldFolderPath) || string.IsNullOrWhiteSpace(NewFolderPath))
+        if (string.IsNullOrWhiteSpace(BaseFolderPath) || 
+            string.IsNullOrWhiteSpace(OldFolderPath) || 
+            string.IsNullOrWhiteSpace(NewFolderPath))
         {
-            _mainViewModel.AppendLog("[エラー] 旧フォルダと新フォルダの両方を選択してください。");
+            _mainViewModel.AppendLog("[エラー] 更新前フォルダ、旧フォルダ、新フォルダのすべてを選択してください。", LogLevel.Error);
             return;
         }
 
-        var selectedFiles = CsvFileInfos.Where(f => f.IsSelected).ToList();
-        if (selectedFiles.Count == 0)
+        // すべてのCSVファイルを比較（選択機能は無効化）
+        var allFiles = CsvFileInfos.ToList();
+        if (allFiles.Count == 0)
         {
-            _mainViewModel.AppendLog("[エラー] 比較する CSV ファイルを選択してください。");
+            _mainViewModel.AppendLog("[エラー] 比較する CSV ファイルが見つかりません。", LogLevel.Error);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(ExportFilePath))
         {
-            _mainViewModel.AppendLog("[エラー] エクスポートファイルパスを指定してください。");
+            _mainViewModel.AppendLog("[エラー] エクスポートファイルパスを指定してください。", LogLevel.Error);
             return;
         }
 
         try
         {
             IsProcessing = true;
-            _mainViewModel.AppendLog($"[処理中] {selectedFiles.Count} 個の CSV ファイルの比較を開始しています...");
+            _mainViewModel.AppendLog($"[処理中] {allFiles.Count} 個の CSV ファイルの比較を開始しています...", LogLevel.Info);
             ProgressValue = 0;
             
             await Task.Run(async () => {
 
                 var connectionString = SelectedConnection.GetConnectionString();
-                var allResults = new List<RowComparisonResult>();
+                var baseVsOldResults = new List<RowComparisonResult>();
+                var baseVsNewResults = new List<RowComparisonResult>();
                 int completed = 0;
 
-                foreach (var csvFileInfo in selectedFiles)
+                foreach (var csvFileInfo in allFiles)
                 {
                     var csvFileName = csvFileInfo.FileName;
-                    _mainViewModel.AppendLog($"[処理中] {csvFileName} を比較しています...");
+                    _mainViewModel.AppendLog($"[処理中] {csvFileName} を比較しています...", LogLevel.Info);
 
+                    var baseCsvPath = FindCsvFile(BaseFolderPath, csvFileName);
                     var oldCsvPath = FindCsvFile(OldFolderPath, csvFileName);
                     var newCsvPath = FindCsvFile(NewFolderPath, csvFileName);
 
-                    if (oldCsvPath == null || newCsvPath == null)
+                    if (baseCsvPath == null || oldCsvPath == null || newCsvPath == null)
                     {
-                        _mainViewModel.AppendLog($"[警告] {csvFileName} が見つかりません。スキップします。");
+                        _mainViewModel.AppendLog($"[警告] {csvFileName} が見つかりません。スキップします。", LogLevel.Warning);
                         continue;
                     }
 
@@ -259,81 +259,104 @@ public partial class CompareViewModel : ViewModelBase
                         tableName = fileNameWithoutExt;
                     }
 
-                    // データベースから主キーを取得
-                    _mainViewModel.AppendLog($"[処理中] テーブル '{schemaName}.{tableName}' の主キーを取得しています...");
-                    List<string> primaryKeys;
-
+                    // データベースから主キーを取得（失敗した場合はnullを返す）
+                    List<string>? primaryKeys = null;
                     try
                     {
                         primaryKeys = await _databaseService.GetPrimaryKeyColumnsAsync(
                             connectionString,
                             schemaName,
                             tableName);
+                        
+                        if (primaryKeys.Count > 0)
+                        {
+                            _mainViewModel.AppendLog($"[情報] テーブル '{schemaName}.{tableName}' の主キー: {string.Join(", ", primaryKeys)}", LogLevel.Info);
+                        }
+                        else
+                        {
+                            _mainViewModel.AppendLog($"[情報] テーブル '{schemaName}.{tableName}' に主キーがありません。整行比較モードを使用します。", LogLevel.Info);
+                        }
                     }
                     catch (Exception ex)
                     {
-                        _mainViewModel.AppendLog($"[警告] テーブル '{schemaName}.{tableName}' の主キー取得に失敗しました: {ex.Message}。スキップします。");
-                        continue;
+                        _mainViewModel.AppendLog($"[警告] テーブル '{schemaName}.{tableName}' の主キー取得に失敗しました: {ex.Message}。整行比較モードを使用します。", LogLevel.Warning);
                     }
 
-                    if (primaryKeys.Count == 0)
+                    // Base vs Old の比較
+                    var fileProgress1 = new Progress<(int current, int total, string message)>(p =>
                     {
-                        _mainViewModel.AppendLog($"[警告] テーブル '{schemaName}.{tableName}' に主キーがありません。スキップします。");
-                        continue;
-                    }
-                    
-                    _mainViewModel.AppendLog($"[情報] 主キー: {string.Join(", ", primaryKeys)}");
-
-                    // CSVファイルを比較
-                    var fileProgress = new Progress<(int current, int total, string message)>(p =>
-                    {
-                        
                         Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            var overallProgress = (completed * 100 + p.current) / selectedFiles.Count;
+                            var overallProgress = (completed * 200 + p.current) / (allFiles.Count * 2);
                             ProgressValue = overallProgress;
-                            _mainViewModel.AppendLog($"[{csvFileName}] {p.message}");
+                            _mainViewModel.AppendLog($"[{csvFileName} - Base vs Old] {p.message}", LogLevel.Info);
                         });
                     });
 
-                    var results = await _csvCompareService.CompareCsvFilesAsync(
+                    var results1 = await _csvCompareService.CompareCsvFilesAsync(
+                        baseCsvPath,
                         oldCsvPath,
+                        primaryKeys,
+                        connectionString,
+                        schemaName,
+                        tableName,
+                        fileProgress1);
+
+                    baseVsOldResults.AddRange(results1);
+
+                    // Base vs New の比較
+                    var fileProgress2 = new Progress<(int current, int total, string message)>(p =>
+                    {
+                        Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            var overallProgress = (completed * 200 + 100 + p.current) / (allFiles.Count * 2);
+                            ProgressValue = overallProgress;
+                            _mainViewModel.AppendLog($"[{csvFileName} - Base vs New] {p.message}", LogLevel.Info);
+                        });
+                    });
+
+                    var results2 = await _csvCompareService.CompareCsvFilesAsync(
+                        baseCsvPath,
                         newCsvPath,
                         primaryKeys,
                         connectionString,
                         schemaName,
                         tableName,
-                        fileProgress);
+                        fileProgress2);
 
-                    allResults.AddRange(results);
+                    baseVsNewResults.AddRange(results2);
+
                     completed++;
-                    ProgressValue = (completed * 100) / selectedFiles.Count;
+                    ProgressValue = (completed * 200) / (allFiles.Count * 2);
                 }
 
                 // Excel にエクスポート
-                _mainViewModel.AppendLog("[処理中] Excel ファイルを生成しています...");
+                _mainViewModel.AppendLog("[処理中] Excel ファイルを生成しています...", LogLevel.Info);
                 await Task.Run(() =>
                 {
-                    _excelService.ExportComparisonResults(ExportFilePath, allResults);
+                    _excelService.ExportComparisonResults(ExportFilePath, baseVsOldResults, baseVsNewResults, connectionString);
                 });
 
-                var deletedCount = allResults.Count(r => r.Status == ComparisonStatus.Deleted);
-                var addedCount = allResults.Count(r => r.Status == ComparisonStatus.Added);
-                var updatedCount = allResults.Count(r => r.Status == ComparisonStatus.Updated);
+                var oldDeletedCount = baseVsOldResults.Count(r => r.Status == ComparisonStatus.Deleted);
+                var oldAddedCount = baseVsOldResults.Count(r => r.Status == ComparisonStatus.Added);
+                var oldUpdatedCount = baseVsOldResults.Count(r => r.Status == ComparisonStatus.Updated);
+
+                var newDeletedCount = baseVsNewResults.Count(r => r.Status == ComparisonStatus.Deleted);
+                var newAddedCount = baseVsNewResults.Count(r => r.Status == ComparisonStatus.Added);
+                var newUpdatedCount = baseVsNewResults.Count(r => r.Status == ComparisonStatus.Updated);
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    _mainViewModel.AppendLog($"[完了] 比較が完了しました。");
-                    _mainViewModel.AppendLog($"  削除: {deletedCount} 件");
-                    _mainViewModel.AppendLog($"  追加: {addedCount} 件");
-                    _mainViewModel.AppendLog($"  更新: {updatedCount} 件");
-                    _mainViewModel.AppendLog($"  結果を {ExportFilePath} に保存しました。");
+                    _mainViewModel.AppendLog($"[完了] 比較が完了しました。", LogLevel.Success);
+                    _mainViewModel.AppendLog($"更新前 vs 旧: 削除={oldDeletedCount}, 追加={oldAddedCount}, 更新={oldUpdatedCount}", LogLevel.Info);
+                    _mainViewModel.AppendLog($"更新前 vs 新: 削除={newDeletedCount}, 追加={newAddedCount}, 更新={newUpdatedCount}", LogLevel.Info);
+                    _mainViewModel.AppendLog($"結果を {ExportFilePath} に保存しました。", LogLevel.Success);
                 });
             });
         }
         catch (Exception ex)
         {
-            _mainViewModel.AppendLog($"[エラー] 比較に失敗しました: {ex.Message}");
+            _mainViewModel.AppendLog($"[エラー] 比較に失敗しました: {ex.Message}", LogLevel.Error);
         }
         finally
         {

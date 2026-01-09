@@ -122,6 +122,68 @@ public class DatabaseService
     }
 
     /// <summary>
+    /// テーブルのコメント（日文名）を取得
+    /// </summary>
+    public async Task<string> GetTableCommentAsync(string connectionString, string schemaName, string tableName)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        const string sql = @"
+            SELECT obj_description(c.oid, 'pg_class') as comment
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = @schema
+              AND c.relname = @table";
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("schema", schemaName);
+        cmd.Parameters.AddWithValue("table", tableName);
+
+        var result = await cmd.ExecuteScalarAsync();
+        return result?.ToString() ?? tableName;
+    }
+
+    /// <summary>
+    /// 列のコメント（日文名）を取得
+    /// </summary>
+    public async Task<Dictionary<string, string>> GetColumnCommentsAsync(string connectionString, string schemaName, string tableName)
+    {
+        var comments = new Dictionary<string, string>();
+
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        const string sql = @"
+            SELECT 
+                a.attname as column_name,
+                COALESCE(d.description, '') as comment
+            FROM pg_attribute a
+            JOIN pg_class c ON c.oid = a.attrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = a.attnum
+            WHERE n.nspname = @schema
+              AND c.relname = @table
+              AND a.attnum > 0
+              AND NOT a.attisdropped
+            ORDER BY a.attnum";
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("schema", schemaName);
+        cmd.Parameters.AddWithValue("table", tableName);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var columnName = reader.GetString(0);
+            var comment = reader.IsDBNull(1) ? columnName : reader.GetString(1);
+            comments[columnName] = string.IsNullOrEmpty(comment) ? columnName : comment;
+        }
+
+        return comments;
+    }
+
+    /// <summary>
     /// CSV エクスポート（COPY コマンド使用）
     /// </summary>
     public async Task ExportTableToCsvAsync(string connectionString, string schemaName, string tableName, string csvPath, IProgress<string>? progress = null)

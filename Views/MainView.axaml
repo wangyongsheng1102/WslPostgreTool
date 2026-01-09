@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WslPostgreTool.ViewModels"
+        xmlns:m="using:WslPostgreTool.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:WslPostgreTool.Converters"
@@ -25,6 +26,7 @@
         <converters:GreaterThanConverter x:Key="GreaterThanConverter"/>
         <converters:LessThanConverter x:Key="LessThanConverter"/>
         <converters:SelectedCountConverter x:Key="SelectedCountConverter"/>
+        <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
     </Window.Resources>
 
     <Window.Styles>
@@ -885,16 +887,22 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                 
-                        <!-- 定义每一条日志如何显示 -->
+                        <!-- 定义每一条日志如何显示（支持分级和颜色） -->
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}"
-                                           TextWrapping="Wrap"
-                                           Foreground="#212529"
+                            <DataTemplate x:DataType="m:LogEntry">
+                                <TextBlock TextWrapping="Wrap"
                                            FontFamily="Consolas, 'Courier New', monospace"
-                                           FontSize="16"
-                                           LineHeight="20"
-                                           Margin="0,0,0,2"/>
+                                           FontSize="12"
+                                           LineHeight="18"
+                                           Margin="0,0,0,2"
+                                           Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="[{0}] {1}">
+                                            <Binding Path="Timestamp"/>
+                                            <Binding Path="Message"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

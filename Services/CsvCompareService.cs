@@ -19,12 +19,12 @@ public class CsvCompareService
     private const int BatchSize = 10000;
 
     /// <summary>
-    /// 2つのCSVファイルを比較（主キーはデータベースから取得）
+    /// 2つのCSVファイルを比較（主キーはデータベースから取得、主キーがない場合は整行比較）
     /// </summary>
     public async Task<List<RowComparisonResult>> CompareCsvFilesAsync(
-        string oldCsvPath,
-        string newCsvPath,
-        List<string> primaryKeyColumns,
+        string baseCsvPath,
+        string compareCsvPath,
+        List<string>? primaryKeyColumns,
         string connectionString,
         string schemaName,
         string tableName,
@@ -32,31 +32,43 @@ public class CsvCompareService
     {
         var results = new List<RowComparisonResult>();
 
-        if (primaryKeyColumns.Count == 0)
-        {
-            progress?.Report((0, 0, "主キー列が指定されていません。スキップします。"));
-            return results;
-        }
-
         progress?.Report((0, 0, $"CSV ファイルの比較を開始しています..."));
 
-        // 旧CSVファイルのデータを読み込み
-        var oldData = await LoadCsvDataWithHashAsync(oldCsvPath, primaryKeyColumns, progress, "旧");
+        // 主キーがない場合は整行比較
+        bool useFullRowComparison = primaryKeyColumns == null || primaryKeyColumns.Count == 0;
+
+        if (useFullRowComparison)
+        {
+            progress?.Report((0, 0, "主キーがないため、整行比較モードで実行します。"));
+        }
+
+        // Base CSVファイルのデータを読み込み
+        var baseData = await LoadCsvDataWithHashAsync(
+            baseCsvPath, 
+            primaryKeyColumns ?? new List<string>(), 
+            progress, 
+            "Base",
+            useFullRowComparison);
         
-        // 新CSVファイルのデータを読み込み
-        var newData = await LoadCsvDataWithHashAsync(newCsvPath, primaryKeyColumns, progress, "新");
+        // Compare CSVファイルのデータを読み込み
+        var compareData = await LoadCsvDataWithHashAsync(
+            compareCsvPath, 
+            primaryKeyColumns ?? new List<string>(), 
+            progress, 
+            "Compare",
+            useFullRowComparison);
 
         progress?.Report((0, 0, "データ比較を実行しています..."));
 
         // FrozenDictionary を使用して高性能な比較
         var comparer = new CompareService.PrimaryKeyComparer();
-        var oldFrozen = oldData.ToFrozenDictionary(comparer);
-        var newFrozen = newData.ToFrozenDictionary(comparer);
+        var baseFrozen = baseData.ToFrozenDictionary(comparer);
+        var compareFrozen = compareData.ToFrozenDictionary(comparer);
 
-        // 削除された行を検出
-        foreach (var kvp in oldFrozen)
+        // 削除された行を検出（BaseにあってCompareにない）
+        foreach (var kvp in baseFrozen)
         {
-            if (!newFrozen.ContainsKey(kvp.Key))
+            if (!compareFrozen.ContainsKey(kvp.Key))
             {
                 results.Add(new RowComparisonResult
                 {
@@ -69,9 +81,9 @@ public class CsvCompareService
         }
 
         // 追加・更新された行を検出
-        foreach (var kvp in newFrozen)
+        foreach (var kvp in compareFrozen)
         {
-            if (!oldFrozen.TryGetValue(kvp.Key, out var oldRow))
+            if (!baseFrozen.TryGetValue(kvp.Key, out var baseRow))
             {
                 // 追加
                 results.Add(new RowComparisonResult
@@ -82,7 +94,7 @@ public class CsvCompareService
                     NewValues = kvp.Value.Values
                 });
             }
-            else if (oldRow.Hash != kvp.Value.Hash)
+            else if (baseRow.Hash != kvp.Value.Hash)
             {
                 // 更新
                 results.Add(new RowComparisonResult
@@ -90,7 +102,7 @@ public class CsvCompareService
                     TableName = $"{schemaName}.{tableName}",
                     Status = ComparisonStatus.Updated,
                     PrimaryKeyValues = kvp.Key,
-                    OldValues = oldRow.Values,
+                    OldValues = baseRow.Values,
                     NewValues = kvp.Value.Values
                 });
             }
@@ -111,7 +123,8 @@ public class CsvCompareService
         string csvPath,
         List<string> primaryKeyColumns,
         IProgress<(int current, int total, string message)>? progress,
-        string label)
+        string label,
+        bool useFullRowComparison = false)
     {
         var data = new Dictionary<Dictionary<string, object?>, RowData>(new CompareService.PrimaryKeyComparer());
         
@@ -132,22 +145,34 @@ public class CsvCompareService
         var totalRows = lines.Length - 1; // ヘッダーを除く
         var processedRows = 0L;
 
-        // 主キー列のインデックスを取得
-        var primaryKeyIndices = primaryKeyColumns
-            .Select(pk => headers.IndexOf(pk))
-            .Where(idx => idx >= 0)
-            .ToList();
+        List<int> primaryKeyIndices;
+        List<int> nonPrimaryKeyIndices;
 
-        if (primaryKeyIndices.Count == 0)
+        if (useFullRowComparison)
         {
-            progress?.Report((0, 0, $"主キー列が見つかりません: {string.Join(", ", primaryKeyColumns)}"));
-            return data;
+            // 整行比較：すべての列を主キーとして扱う
+            primaryKeyIndices = Enumerable.Range(0, headers.Count).ToList();
+            nonPrimaryKeyIndices = new List<int>(); // 非主キー列なし
         }
+        else
+        {
+            // 主キー列のインデックスを取得
+            primaryKeyIndices = primaryKeyColumns
+                .Select(pk => headers.IndexOf(pk))
+                .Where(idx => idx >= 0)
+                .ToList();
 
-        // 非主キー列のインデックス
-        var nonPrimaryKeyIndices = Enumerable.Range(0, headers.Count)
-            .Where(i => !primaryKeyIndices.Contains(i))
-            .ToList();
+            if (primaryKeyIndices.Count == 0)
+            {
+                progress?.Report((0, 0, $"主キー列が見つかりません: {string.Join(", ", primaryKeyColumns)}"));
+                return data;
+            }
+
+            // 非主キー列のインデックス
+            nonPrimaryKeyIndices = Enumerable.Range(0, headers.Count)
+                .Where(i => !primaryKeyIndices.Contains(i))
+                .ToList();
+        }
 
         var batch = new List<(Dictionary<string, object?> pk, Dictionary<string, object?> values, long hash)>();
 
@@ -173,14 +198,30 @@ public class CsvCompareService
             var nonPkValues = new Dictionary<string, object?>();
             var hashBuilder = new StringBuilder();
 
-            foreach (var idx in nonPrimaryKeyIndices)
+            if (useFullRowComparison)
             {
-                var colName = headers[idx];
-                var value = idx < values.Count ? values[idx] : null;
-                nonPkValues[colName] = string.IsNullOrEmpty(value) ? null : value;
-                
-                hashBuilder.Append(colName).Append('=');
-                hashBuilder.Append(value ?? "NULL").Append('|');
+                // 整行比較：すべての列の値をハッシュに含める
+                foreach (var idx in primaryKeyIndices)
+                {
+                    var colName = headers[idx];
+                    var value = idx < values.Count ? values[idx] : null;
+                    nonPkValues[colName] = string.IsNullOrEmpty(value) ? null : value;
+                    
+                    hashBuilder.Append(colName).Append('=');
+                    hashBuilder.Append(value ?? "NULL").Append('|');
+                }
+            }
+            else
+            {
+                foreach (var idx in nonPrimaryKeyIndices)
+                {
+                    var colName = headers[idx];
+                    var value = idx < values.Count ? values[idx] : null;
+                    nonPkValues[colName] = string.IsNullOrEmpty(value) ? null : value;
+                    
+                    hashBuilder.Append(colName).Append('=');
+                    hashBuilder.Append(value ?? "NULL").Append('|');
+                }
             }
 
             // ハッシュ値を計算

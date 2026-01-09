@@ -28,9 +28,9 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private string _logMessage = string.Empty;
     
-    // 添加新的 LogMessages 集合用于 ItemsControl
+    // 添加新的 LogMessages 集合用于 ItemsControl（支持分级）
     [ObservableProperty]
-    private ObservableCollection<string> _logMessages = new();
+    private ObservableCollection<LogEntry> _logMessages = new();
 
     [ObservableProperty]
     private int _progressValue;
@@ -126,26 +126,26 @@ public partial class MainViewModel : ViewModelBase
     // 添加滚动事件
     public event Action? RequestScrollToBottom;
     
-    // 修改 AppendLog 方法
-    public void AppendLog(string message)
+    // 修改 AppendLog 方法（支持分级）
+    public void AppendLog(string message, LogLevel level = LogLevel.Info)
     {
-        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        var logEntry = $"[{timestamp}] {message}";
-        
         // 在 UI 线程更新
         Dispatcher.UIThread.Post(() =>
         {
+            var logEntry = new LogEntry(message, level);
+            
             // 1. 更新 LogMessages 集合（用于 ItemsControl）
             LogMessages.Add(logEntry);
             
             // 2. 可选：保持 LogMessage 字符串（用于向后兼容）
+            var logText = $"[{logEntry.Timestamp}] {message}";
             if (string.IsNullOrEmpty(LogMessage))
             {
-                LogMessage = logEntry;
+                LogMessage = logText;
             }
             else
             {
-                LogMessage += $"\n{logEntry}";
+                LogMessage += $"\n{logText}";
             }
             
             // 限制日志数量（防止内存无限增长）
@@ -155,12 +155,21 @@ public partial class MainViewModel : ViewModelBase
                 // 移除最旧的日志
                 LogMessages.RemoveAt(0);
                 
-                // 重新构建 LogMessage 字符串（只保留最近100条）
+                // 重新构建 LogMessage 字符串（只保留最近1000条）
                 var recentLogs = LogMessages.TakeLast(1000);
-                LogMessage = string.Join("\n", recentLogs);
+                LogMessage = string.Join("\n", recentLogs.Select(l => $"[{l.Timestamp}] {l.Message}"));
+                RequestScrollToBottom?.Invoke();
+            }
+            else
+            {
                 RequestScrollToBottom?.Invoke();
             }
         }, DispatcherPriority.Background);
     }
-
+    
+    // 向后兼容：无分级的AppendLog方法
+    public void AppendLog(string message)
+    {
+        AppendLog(message, LogLevel.Info);
+    }
 }
