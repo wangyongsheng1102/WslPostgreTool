@@ -27,5 +27,12 @@
   <ItemGroup>
     <TrimmerRootDescriptor Include="RootDescriptor.xml" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\LXGWWenKai-Bold.ttf" />
+    <AvaloniaResource Include="Assets\LXGWWenKai-Bold.ttf" />
+    <None Remove="Assets\LXGWWenKai-Light.ttf" />
+    <AvaloniaResource Include="Assets\LXGWWenKai-Light.ttf" />
+  </ItemGroup>
 </Project>
 

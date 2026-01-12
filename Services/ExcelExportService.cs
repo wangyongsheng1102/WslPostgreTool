@@ -42,10 +42,12 @@ public class ExcelExportService
         var worksheet = workbook.Worksheets.Add(sheetName);
 
         // A1: テストデータ参照用（红色字体）
-        worksheet.Cell(1, 1).Value = "テストデータ参照用";
+        worksheet.Cell(1, 1).Value = "[自動採番]、[登録/更新/削除日時]、[登録/更新/削除者]、[登録/更新/削除機能]のデータ比較結果が「FALSE」の場合、補足説明が必要がない。";
         worksheet.Cell(1, 1).Style.Font.FontColor = XLColor.Red;
         worksheet.Cell(1, 1).Style.Font.Bold = true;
-        worksheet.Cell(1, 1).Style.Font.FontSize = 14;
+        worksheet.Cell(1, 1).Style.Font.FontSize = 11;
+        worksheet.Cell(1, 1).Style.Font.SetFontName("MS PGothic");
+        worksheet.Column("A").Width = 3.5;
 
         if (!results.Any())
         {
@@ -100,12 +102,14 @@ public class ExcelExportService
             // C列开始：表日文名、表名（绿色底色）
             int headerStartCol = 3;
             worksheet.Cell(currentRow, headerStartCol).Value = tableComment;
-            worksheet.Cell(currentRow, headerStartCol).Style.Fill.BackgroundColor = XLColor.LightGreen;
+            // worksheet.Cell(currentRow, headerStartCol).Style.Fill.BackgroundColor = XLColor.LightGreen;
             worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
             
-            worksheet.Cell(currentRow, headerStartCol + 1).Value = tableName;
-            worksheet.Cell(currentRow, headerStartCol + 1).Style.Fill.BackgroundColor = XLColor.LightGreen;
-            worksheet.Cell(currentRow, headerStartCol + 1).Style.Font.Bold = true;
+            currentRow += 1;
+            
+            worksheet.Cell(currentRow, headerStartCol).Value = tableName;
+            // worksheet.Cell(currentRow, headerStartCol).Style.Fill.BackgroundColor = XLColor.LightGreen;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
 
             currentRow++;
 
@@ -119,18 +123,32 @@ public class ExcelExportService
             {
                 var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
                 worksheet.Cell(colHeaderRow, colIndex).Value = columnComment; // 日文名
-                worksheet.Cell(colHeaderRow, colIndex).Style.Fill.BackgroundColor = XLColor.LightGreen;
+                worksheet.Cell(colHeaderRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
                 worksheet.Cell(colHeaderRow, colIndex).Style.Font.Bold = true;
-                
-                colIndex++;
-                worksheet.Cell(colHeaderRow, colIndex).Value = column; // 英文名
-                worksheet.Cell(colHeaderRow, colIndex).Style.Fill.BackgroundColor = XLColor.LightGreen;
-                worksheet.Cell(colHeaderRow, colIndex).Style.Font.Bold = true;
+                worksheet.Cell(colHeaderRow, colIndex).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                worksheet.Cell(colHeaderRow, colIndex).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                worksheet.Cell(colHeaderRow, colIndex).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+                worksheet.Cell(colHeaderRow, colIndex).Style.Border.RightBorder = XLBorderStyleValues.Thin;
                 
                 colIndex++;
             }
 
-            currentRow++;
+            currentRow += 1;
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                worksheet.Cell(currentRow, colIndex).Value = column; // 英文名
+                worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                worksheet.Cell(currentRow, colIndex).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                worksheet.Cell(currentRow, colIndex).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                worksheet.Cell(currentRow, colIndex).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+                worksheet.Cell(currentRow, colIndex).Style.Border.RightBorder = XLBorderStyleValues.Thin;
+                
+                colIndex++;
+            }
+
+            currentRow += 1;
 
             // 数据行：每两行显示一个比较结果
             foreach (var result in tableResults)
@@ -162,9 +180,13 @@ public class ExcelExportService
 
                     // 日文名列和英文名列都写入相同的值
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    worksheet.Cell(currentRow, dataCol).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                    worksheet.Cell(currentRow, dataCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                    worksheet.Cell(currentRow, dataCol).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+                    worksheet.Cell(currentRow, dataCol).Style.Border.RightBorder = XLBorderStyleValues.Thin;
                     dataCol++;
-                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
-                    dataCol++;
+                    // worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    // dataCol++;
                 }
 
                 currentRow++;
@@ -216,22 +238,27 @@ public class ExcelExportService
 
                     // 日文名列和英文名列都写入相同的值
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    worksheet.Cell(currentRow, dataCol).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                    worksheet.Cell(currentRow, dataCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                    worksheet.Cell(currentRow, dataCol).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+                    worksheet.Cell(currentRow, dataCol).Style.Border.RightBorder = XLBorderStyleValues.Thin;
                     
                     // 如果是变更的字段，添加黄色底色（两列都标记）
                     if (isChanged)
                     {
-                        worksheet.Cell(currentRow, dataCol).Style.Fill.BackgroundColor = XLColor.LightYellow;
+                        worksheet.Cell(currentRow, dataCol).Style.Fill.BackgroundColor = XLColor.Yellow;
+                        worksheet.Cell(currentRow - 1, dataCol).Style.Fill.BackgroundColor = XLColor.Yellow;
                     }
                     
                     dataCol++;
-                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    // worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    //
+                    // if (isChanged)
+                    // {
+                    //     worksheet.Cell(currentRow, dataCol).Style.Fill.BackgroundColor = XLColor.Yellow;
+                    // }
                     
-                    if (isChanged)
-                    {
-                        worksheet.Cell(currentRow, dataCol).Style.Fill.BackgroundColor = XLColor.LightYellow;
-                    }
-                    
-                    dataCol++;
+                    // dataCol++;
                 }
 
                 currentRow++;

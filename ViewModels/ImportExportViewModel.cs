@@ -75,11 +75,11 @@ public partial class ImportExportViewModel : ViewModelBase
 
             OnPropertyChanged(nameof(SelectedTableCount));
 
-            _mainViewModel.AppendLog($"[完了] {Tables.Count} 個のテーブルを取得しました。");
+            _mainViewModel.AppendLog($"[完了] {Tables.Count} 個のテーブルを取得しました。", LogLevel.Success);
         }
         catch (Exception ex)
         {
-            _mainViewModel.AppendLog($"[エラー] テーブル取得に失敗しました: {ex.Message}");
+            _mainViewModel.AppendLog($"[エラー] テーブル取得に失敗しました: {ex.Message}", LogLevel.Error);
         }
         finally
         {
@@ -112,20 +112,20 @@ public partial class ImportExportViewModel : ViewModelBase
     {
         if (SelectedConnection == null)
         {
-            _mainViewModel.AppendLog("[エラー] 接続を選択してください。");
+            _mainViewModel.AppendLog("[エラー] 接続を選択してください。", LogLevel.Error);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(ExportFolderPath))
         {
-            _mainViewModel.AppendLog("[エラー] エクスポートフォルダを選択してください。");
+            _mainViewModel.AppendLog("[エラー] エクスポートフォルダを選択してください。", LogLevel.Error);
             return;
         }
 
         var selectedTables = Tables.Where(t => t.IsSelected).ToList();
         if (selectedTables.Count == 0)
         {
-            _mainViewModel.AppendLog("[エラー] エクスポートするテーブルを選択してください。");
+            _mainViewModel.AppendLog("[エラー] エクスポートするテーブルを選択してください。", LogLevel.Error);
             return;
         }
 
@@ -136,7 +136,7 @@ public partial class ImportExportViewModel : ViewModelBase
             var exportDir = Path.Combine(ExportFolderPath, timestamp);
             Directory.CreateDirectory(exportDir);
 
-            _mainViewModel.AppendLog($"[処理中] エクスポートを開始しています... ({selectedTables.Count} テーブル)");
+            _mainViewModel.AppendLog($"[処理中] エクスポートを開始しています... ({selectedTables.Count} テーブル)", LogLevel.Info);
             ProgressValue = 0;
 
             var connectionString = SelectedConnection.GetConnectionString();
@@ -156,11 +156,11 @@ public partial class ImportExportViewModel : ViewModelBase
                 ProgressValue = (int)(completed * 100 / selectedTables.Count);
             }
 
-            _mainViewModel.AppendLog($"[完了] {selectedTables.Count} 個のテーブルをエクスポートしました。保存先: {exportDir}");
+            _mainViewModel.AppendLog($"[完了] {selectedTables.Count} 個のテーブルをエクスポートしました。保存先: {exportDir}", LogLevel.Success);
         }
         catch (Exception ex)
         {
-            _mainViewModel.AppendLog($"[エラー] エクスポートに失敗しました: {ex.Message}");
+            _mainViewModel.AppendLog($"[エラー] エクスポートに失敗しました: {ex.Message}", LogLevel.Error);
         }
         finally
         {
@@ -217,27 +217,27 @@ public partial class ImportExportViewModel : ViewModelBase
     {
         if (SelectedConnection == null)
         {
-            _mainViewModel.AppendLog("[エラー] 接続を選択してください。");
+            _mainViewModel.AppendLog("[エラー] 接続を選択してください。", LogLevel.Error);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(ImportFolderPath))
         {
-            _mainViewModel.AppendLog("[エラー] インポートフォルダを選択してください。");
+            _mainViewModel.AppendLog("[エラー] インポートフォルダを選択してください。", LogLevel.Error);
             return;
         }
 
         var csvFiles = Directory.GetFiles(ImportFolderPath, "*.csv", SearchOption.AllDirectories);
         if (csvFiles.Length == 0)
         {
-            _mainViewModel.AppendLog("[エラー] CSV ファイルが見つかりません。");
+            _mainViewModel.AppendLog("[エラー] CSV ファイルが見つかりません。", LogLevel.Error);
             return;
         }
 
         try
         {
             IsProcessing = true;
-            _mainViewModel.AppendLog($"[処理中] インポートを開始しています... ({csvFiles.Length} ファイル)");
+            _mainViewModel.AppendLog($"[処理中] インポートを開始しています... ({csvFiles.Length} ファイル)", LogLevel.Info);
             ProgressValue = 0;
 
             var connectionString = SelectedConnection.GetConnectionString();
@@ -261,7 +261,7 @@ public partial class ImportExportViewModel : ViewModelBase
                     tableName = fileName;
                 }
 
-                _mainViewModel.AppendLog($"[処理中] {csvFile} をインポートしています...");
+                _mainViewModel.AppendLog($"[処理中] {csvFile} をインポートしています...", LogLevel.Info);
                 
                 await _databaseService.ImportTableFromCsvAsync(
                     connectionString,
@@ -274,11 +274,11 @@ public partial class ImportExportViewModel : ViewModelBase
                 ProgressValue = (int)(completed * 100 / csvFiles.Length);
             }
 
-            _mainViewModel.AppendLog($"[完了] {csvFiles.Length} 個のファイルをインポートしました。");
+            _mainViewModel.AppendLog($"[完了] {csvFiles.Length} 個のファイルをインポートしました。", LogLevel.Success);
         }
         catch (Exception ex)
         {
-            _mainViewModel.AppendLog($"[エラー] インポートに失敗しました: {ex.Message}");
+            _mainViewModel.AppendLog($"[エラー] インポートに失敗しました: {ex.Message}", LogLevel.Error);
         }
         finally
         {

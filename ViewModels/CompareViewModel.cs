@@ -42,6 +42,9 @@ public partial class CompareViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _exportFilePath = string.Empty;
+    
+    [ObservableProperty]
+    private bool _accessLogChecked = false;
 
     public int SelectedCsvFileCount => CsvFileInfos.Count(f => f.IsSelected);
 
@@ -230,6 +233,13 @@ public partial class CompareViewModel : ViewModelBase
 
                 foreach (var csvFileInfo in allFiles)
                 {
+                    if (AccessLogChecked && csvFileInfo.FileName.Contains("access_log.csv", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _mainViewModel.AppendLog($"[スキップ] access_log.csv の比較はスキップされました。", LogLevel.Info);
+                        completed++;
+                        ProgressValue = (completed * 200) / (allFiles.Count * 2);
+                        continue;
+                    }
                     var csvFileName = csvFileInfo.FileName;
                     _mainViewModel.AppendLog($"[処理中] {csvFileName} を比較しています...", LogLevel.Info);
 

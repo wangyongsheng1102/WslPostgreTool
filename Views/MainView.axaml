@@ -10,11 +10,9 @@
         d:DesignHeight="800"
         x:Class="WslPostgreTool.Views.MainView"
         x:DataType="vm:MainViewModel"
-        Title="データ比較・インポート・エクスポートツール「Postgre版」Powered by Avalonia.Author:wangys"
-        Width="1200"
-        Height="800"
-        MinWidth="800"
-        MinHeight="600"
+        Title="データ比較・インポート・エクスポートツール「Postgre版」Powered by Avalonia"
+        Width="1200" Height="800"
+        MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         Background="#F8F9FA">
     
@@ -33,21 +31,19 @@
         <!-- 全局文本样式 -->
         <Style Selector="TextBlock">
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Microsoft YaHei UI"></Setter>
+            <Setter Property="FontFamily" Value="avares://WslPostgreTool/Assets/LXGWWenKai-Bold.ttf#霞鹜文楷"></Setter>
             <Setter Property="Foreground" Value="DarkSlateGray"/>
         </Style>
 
         <!-- 标题样式 -->
         <Style Selector="TextBlock.title">
             <Setter Property="FontSize" Value="20"/>
-            <Setter Property="FontWeight" Value="Thin"/>
             <Setter Property="Foreground" Value="CornflowerBlue"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
 
         <Style Selector="TextBlock.section-title">
             <Setter Property="FontSize" Value="17"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#495057"/>
             <Setter Property="Margin" Value="0,0,0,12"/>
         </Style>
@@ -57,6 +53,7 @@
             <Setter Property="Padding" Value="14,10"/>
             <Setter Property="Margin" Value="0,0,10,10"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="avares://WslPostgreTool/Assets/LXGWWenKai-Bold.ttf#霞鹜文楷"></Setter>
             <Setter Property="MinWidth" Value="130"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -119,7 +116,7 @@
         <Style Selector="TextBox, ComboBox">
             <Setter Property="Padding" Value="14,10"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
-            <Setter Property="FontFamily" Value="Microsoft YaHei UI"></Setter>
+            <Setter Property="FontFamily" Value="avares://WslPostgreTool/Assets/LXGWWenKai-Bold.ttf#霞鹜文楷"></Setter>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -141,16 +138,13 @@
         <!-- Tab样式 -->
         <Style Selector="TabItem">
             <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="FontFamily" Value="Microsoft YaHei UI"></Setter>
+            <Setter Property="FontFamily" Value="avares://WslPostgreTool/Assets/LXGWWenKai-Bold.ttf#霞鹜文楷"></Setter>
             <Setter Property="FontSize" Value="17"/>
-            <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Margin" Value="0,0,4,0"/>
         </Style>
 
         <Style Selector="TabItem:selected">
             <Setter Property="Foreground" Value="DeepSkyBlue"/>
-            <Setter Property="FontWeight" Value="DemiBold"/>
-            <Setter Property="FontFamily" Value="Microsoft YaHei UI"></Setter>
         </Style>
 
         <!-- ListBox样式 -->
@@ -179,7 +173,6 @@
                               VerticalAlignment="Center"/>
                     <TextBlock Text="データ比較・インポート・エクスポートツール「Postgre版」"
                               FontSize="20"
-                              FontWeight="Bold"
                               Foreground="White"
                               VerticalAlignment="Center"/>
                 </StackPanel>
@@ -188,28 +181,48 @@
                           FontSize="13"
                           Foreground="LightGray"
                           VerticalAlignment="Center"
-                          Margin="0,0,0,0"/>
+                          Margin="0,0,0,0"
+                          Cursor="Hand"
+                          PointerPressed="VersionTextBlock_PointerPressed">
+                    <TextBlock.Styles>
+                        <Style Selector="TextBlock:pointerover">
+                            <Setter Property="TextDecorations" Value="Underline"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                    </TextBlock.Styles>
+                </TextBlock>
                 <TextBlock Grid.Column="2"
                            Text="{Binding AppAuthor, StringFormat='Author-{0}'}"
                            FontSize="13"
                            Foreground="#B3D9FF"
                            VerticalAlignment="Center"
-                           Margin="20,0,0,0"/>
+                           Margin="20,0,0,0"
+                           Cursor="Hand"
+                           PointerPressed="AuthorTextBlock_PointerPressed"/>
                 <TextBlock Grid.Column="3"
                           Text="{Binding Connections.Count, StringFormat='接続数: {0}'}"
                           FontSize="13"
                           Foreground="#B3D9FF"
                           VerticalAlignment="Center"
-                          Margin="20,0,0,0"/>
+                          Margin="20,0,0,0"
+                          Cursor="Hand"
+                          PointerPressed="ConnectionsCount_PointerPressed">
+                    <TextBlock.Styles>
+                        <Style Selector="TextBlock:pointerover">
+                            <Setter Property="TextDecorations" Value="Underline"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                    </TextBlock.Styles>
+                </TextBlock>
             </Grid>
         </Border>
 
         <!-- タブコントロール -->
-        <TabControl Grid.Row="1"
+        <TabControl Grid.Row="1" x:Name="MainTabControl"
                    Margin="14,14,14,14"
                    Background="Transparent">
             <!-- DB設定タブ -->
-            <TabItem Header="📋 DB設定">
+            <TabItem Header="📋 DB設定" x:Name="ConnectionTab">
                 <Grid RowDefinitions="Auto,*">
                     <Grid Grid.Row="0"
                           RowDefinitions="Auto,Auto">
@@ -225,13 +238,13 @@
                                 <!--           Margin="0,0,24,0" -->
                                 <!--           VerticalAlignment="Center" -->
                                 <!--           FontSize="15" -->
-                                <!--           FontWeight="Medium" -->
                                 <!--           Foreground="#6C757D"/> -->
                                 <Button Content="➕ 接続を追加"
                                         Command="{Binding DbConfigViewModel.AddConnectionCommand}"
                                         Classes="primary"/>
                                 <Button Content="🔄 WSLリストを更新"
-                                        Command="{Binding DbConfigViewModel.RefreshWslDistributionsCommand}"/>
+                                        Command="{Binding DbConfigViewModel.RefreshWslDistributionsCommand}"
+                                        IsVisible="False"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -267,7 +280,6 @@
                                                   Margin="0">
                                                 <TextBlock Grid.Column="0"
                                                           Text="設定名"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -275,7 +287,6 @@
                                                           Foreground="#495057"/>
                                                 <TextBlock Grid.Column="1"
                                                           Text="ホスト"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -283,7 +294,6 @@
                                                           Foreground="#495057"/>
                                                 <TextBlock Grid.Column="2"
                                                           Text="ポート"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -291,7 +301,6 @@
                                                           Foreground="#495057"/>
                                                 <TextBlock Grid.Column="3"
                                                           Text="データベース"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -299,7 +308,6 @@
                                                           Foreground="#495057"/>
                                                 <TextBlock Grid.Column="4"
                                                           Text="ユーザー"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -307,7 +315,6 @@
                                                           Foreground="#495057"/>
                                                 <TextBlock Grid.Column="5"
                                                           Text="パスワード"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -315,7 +322,6 @@
                                                           Foreground="#495057"/>
                                                 <TextBlock Grid.Column="6"
                                                           Text="WSL"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -323,7 +329,6 @@
                                                           Foreground="#495057"/>
                                                 <TextBlock Grid.Column="7"
                                                           Text="操作"
-                                                          FontWeight="Bold"
                                                           FontSize="13"
                                                           Margin="0,0"
                                                           VerticalAlignment="Center"
@@ -493,7 +498,7 @@
                             
 
                             <!-- 表格列表 -->
-                            <Border Grid.Row="0" Classes="card">
+                            <Border Grid.Row="0" Classes="card" Padding="100,10,100,10">
                                 <Grid RowDefinitions="Auto,Auto,Auto,*">
                                     <TextBlock Grid.Row="0"
                                               Text="テーブル一覧「エクスポート用」"
@@ -531,12 +536,10 @@
                                                         <TextBlock Grid.Column="1"
                                                                   Text="{Binding SchemaName}"
                                                                   VerticalAlignment="Center"
-                                                                  FontWeight="Medium"
                                                                   Foreground="#6C757D"/>
                                                         <TextBlock Grid.Column="2"
                                                                   Text="{Binding TableName}"
-                                                                  VerticalAlignment="Center"
-                                                                  FontWeight="Medium"/>
+                                                                  VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="3"
                                                                   Text="{Binding RowCount, StringFormat='{}{0:N0} 行'}"
                                                                   VerticalAlignment="Center"
@@ -692,7 +695,6 @@
                                     <StackPanel Grid.Row="1" 
                                                 Grid.ColumnSpan="2" Margin="0,0,0,12">
                                         <TextBlock Text="更新前フォルダ"
-                                                   FontWeight="Bold"
                                                    FontSize="14"
                                                    Margin="0,0,0,10"
                                                    Foreground="#495057"/>
@@ -712,7 +714,6 @@
 
                                     <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,12,0">
                                         <TextBlock Text="旧フォルダ"
-                                                  FontWeight="Bold"
                                                   FontSize="14"
                                                   Margin="0,0,0,10"
                                                   Foreground="#495057"/>
@@ -732,7 +733,6 @@
 
                                     <StackPanel Grid.Row="2" Grid.Column="1" Margin="12,0,0,0">
                                         <TextBlock Text="新フォルダ"
-                                                  FontWeight="Bold"
                                                   FontSize="14"
                                                   Margin="0,0,0,10"
                                                   Foreground="#495057"/>
@@ -819,14 +819,20 @@
                                                Classes="primary"
                                                Margin="0,0,12,0"/>
                                     </Grid>
-                                    <Button Grid.Row="2" Content="▶ 比較実行"
-                                            Command="{Binding CompareViewModel.CompareCsvFilesCommand}"
-                                            IsEnabled="{Binding !CompareViewModel.IsProcessing}"
-                                            Classes="success"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Center"
-                                            FontSize="15"
-                                            Margin="0,10,0,0"/>
+                                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*">
+                                        <CheckBox Grid.Column="0" Content="CISの[access__log]テーブルの差分も出力"
+                                                  IsChecked="{Binding CompareViewModel.AccessLogChecked}"
+                                                  FontFamily="avares://WslPostgreTool/Assets/LXGWWenKai-Bold.ttf#霞鹜文楷"
+                                                  Margin="0,10,10,0"/>
+                                        <Button Grid.Column="1" Content="▶ 比較実行"
+                                                Command="{Binding CompareViewModel.CompareCsvFilesCommand}"
+                                                IsEnabled="{Binding !CompareViewModel.IsProcessing}"
+                                                Classes="success"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center"
+                                                FontSize="15"
+                                                Margin="0,10,0,0"/>
+                                    </Grid>
                                 </Grid>
                             </Border>
 
@@ -862,7 +868,6 @@
                             Orientation="Horizontal"
                             Margin="0,0,0,10">
                     <TextBlock Text="📋 システムログ"
-                               FontWeight="Bold"
                                FontSize="12"
                                Foreground="#495057"/>
             
@@ -891,7 +896,6 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:LogEntry">
                                 <TextBlock TextWrapping="Wrap"
-                                           FontFamily="Consolas, 'Courier New', monospace"
                                            FontSize="12"
                                            LineHeight="18"
                                            Margin="0,0,0,2"

@@ -1,0 +1,380 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:WslPostgreTool.ViewModels"
+        x:Class="WslPostgreTool.Views.AuthorInfoWindow"
+        x:DataType="local:AuthorInfoViewModel"
+        mc:Ignorable="d"
+        Title="開発者情報"
+        Width="700"
+        Height="550"
+        MinWidth="600"
+        MinHeight="500"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="avares://WslPostgreTool/Assets/LXGWWenKai-Bold.ttf#霞鹜文楷">
+    
+    <Design.DataContext>
+        <local:AuthorInfoViewModel/>
+    </Design.DataContext>
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 标题区域 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="👨‍💻 開発者情報"
+                      FontSize="18"
+                      FontWeight="Bold"
+                      Foreground="DarkSlateBlue"/>
+            <TextBlock Text="データ比較・インポート・エクスポートツール「Postgre版」の開発チーム情報"
+                      FontSize="12"
+                      Foreground="Gray"
+                      Margin="0,5,0,0"/>
+        </StackPanel>
+        
+        <!-- 主要内容区域 -->
+        <ScrollViewer Grid.Row="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 作者基本信息卡片 -->
+                <Border Grid.Row="0"
+                        Background="White"
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- 作者头像/图标 -->
+                        <Border Grid.Column="0"
+                                Width="80"
+                                Height="80"
+                                Background="#4A6FA5"
+                                CornerRadius="40"
+                                Margin="0,0,20,0">
+                            <TextBlock Text="WYS"
+                                      Foreground="White"
+                                      FontSize="24"
+                                      FontWeight="Bold"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                        </Border>
+                        
+                        <!-- 作者详细信息 -->
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding AuthorName}"
+                                      FontSize="20"
+                                      FontWeight="Bold"
+                                      Foreground="#333333"/>
+                            <TextBlock Text="{Binding AuthorTitle}"
+                                      FontSize="14"
+                                      Foreground="#4A6FA5"
+                                      FontWeight="SemiBold"
+                                      Margin="0,5,0,0"/>
+                            <TextBlock Text="{Binding Company}"
+                                      FontSize="12"
+                                      Foreground="#666666"
+                                      Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding Location}"
+                                      FontSize="12"
+                                      Foreground="#666666"
+                                      Margin="0,2,0,0"/>
+                        </StackPanel>
+                        
+                        <!-- 联系信息 -->
+                        <StackPanel Grid.Column="2"
+                                    Width="250"
+                                    Margin="20,0,0,0">
+                            <Border Background="#F8F9FA"
+                                    CornerRadius="5"
+                                    Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="📧 連絡先"
+                                              FontSize="13"
+                                              FontWeight="SemiBold"
+                                              Foreground="#4A6FA5"/>
+                                    <TextBlock Text="{Binding Email}"
+                                              FontSize="12"
+                                              Foreground="#666666"
+                                              Margin="0,5,0,0"/>
+                                    <TextBlock Text="{Binding Website}"
+                                              FontSize="12"
+                                              Foreground="#4A6FA5"
+                                              Margin="0,5,0,0"
+                                              TextDecorations="Underline"
+                                              Cursor="Hand"
+                                              PointerPressed="Website_PointerPressed"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <!-- 专业技能卡片 -->
+                <Border Grid.Row="1"
+                        Background="White"
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15"
+                        IsVisible="False">
+                    <StackPanel>
+                        <TextBlock Text="🔧 専門技能"
+                                  FontSize="16"
+                                  FontWeight="Bold"
+                                  Foreground="#333333"
+                                  Margin="0,0,0,15"/>
+                        
+                        <ItemsControl ItemsSource="{Binding Skills}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,10"
+                                            Background="#F8F9FA"
+                                            CornerRadius="5"
+                                            Padding="12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- 技能图标 -->
+                                            <TextBlock Grid.Column="0"
+                                                      Text="{Binding Icon}"
+                                                      FontSize="18"
+                                                      Margin="0,0,12,0"/>
+                                            
+                                            <!-- 技能名称和描述 -->
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Name}"
+                                                          FontSize="14"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="#4A6FA5"/>
+                                                <TextBlock Text="{Binding Description}"
+                                                          FontSize="12"
+                                                          Foreground="#666666"
+                                                          Margin="0,4,0,0"
+                                                          TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                            
+                                            <!-- 熟练度 -->
+                                            <StackPanel Grid.Column="2"
+                                                        Width="100"
+                                                        HorizontalAlignment="Right">
+                                                <TextBlock Text="{Binding Proficiency, StringFormat='熟練度: {0}%'}"
+                                                          FontSize="11"
+                                                          Foreground="#666666"
+                                                          HorizontalAlignment="Right"/>
+                                                <Border Height="6"
+                                                        Background="#E0E0E0"
+                                                        CornerRadius="3"
+                                                        Margin="0,4,0,0">
+                                                    <Border Width="{Binding Proficiency}"
+                                                            Background="#4A6FA5"
+                                                            CornerRadius="3"
+                                                            HorizontalAlignment="Left"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                
+                <!-- 项目贡献卡片 -->
+                <Border Grid.Row="2"
+                        Background="White"
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="0,0,0,15"
+                        IsVisible="False">
+                    <StackPanel>
+                        <TextBlock Text="📁 プロジェクト貢献"
+                                  FontSize="16"
+                                  FontWeight="Bold"
+                                  Foreground="#333333"
+                                  Margin="0,0,0,15"/>
+                        
+                        <ItemsControl ItemsSource="{Binding Contributions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,8"
+                                            Background="#F8F9FA"
+                                            CornerRadius="5"
+                                            Padding="12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- 贡献类型图标 -->
+                                            <Border Grid.Column="0"
+                                                    Width="36"
+                                                    Height="36"
+                                                    Background="{Binding TypeColor}"
+                                                    CornerRadius="18"
+                                                    Margin="0,0,12,0">
+                                                <TextBlock Text="{Binding Icon}"
+                                                          Foreground="White"
+                                                          FontSize="16"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                            </Border>
+                                            
+                                            <!-- 贡献描述 -->
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Description}"
+                                                          FontSize="13"
+                                                          Foreground="#333333"
+                                                          TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Date, StringFormat='実施日: {0:yyyy/MM/dd}'}"
+                                                          FontSize="11"
+                                                          Foreground="#888888"
+                                                          Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                            
+                                            <!-- 状态标签 -->
+                                            <Border Grid.Column="2"
+                                                    Background="{Binding StatusColor}"
+                                                    CornerRadius="3"
+                                                    Padding="6,2"
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Status}"
+                                                          FontSize="11"
+                                                          FontWeight="SemiBold"
+                                                          Foreground="White"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                
+                <!-- 致谢卡片 -->
+        <Border Grid.Row="3"
+                Background="#F0F7FF"
+                BorderBrush="#4A6FA5"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="20"
+                IsVisible="False">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 标题 -->
+                <TextBlock Grid.Row="0"
+                          Text="🙏 謝辞"
+                          FontSize="16"
+                          FontWeight="Bold"
+                          Foreground="#4A6FA5"
+                          Margin="0,0,0,10"/>
+                
+                <!-- 致谢内容 -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              MaxHeight="200">  <!-- 限制最大高度 -->
+                    <TextBlock Text="{Binding Acknowledgements}"
+                              FontSize="13"
+                              Foreground="#555555"
+                              TextWrapping="Wrap"
+                              LineHeight="1.5"/>
+                </ScrollViewer>
+                
+                <!-- 更新日期 -->
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
+                            Margin="0,15,0,0"
+                            HorizontalAlignment="Right">
+                    <TextBlock Text="最終更新: "
+                              FontSize="11"
+                              Foreground="#888888"/>
+                    <TextBlock Text="{Binding LastUpdatedFormatted}"
+                              FontSize="11"
+                              Foreground="#4A6FA5"
+                              FontWeight="SemiBold"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+            </Grid>
+        </ScrollViewer>
+        
+        <!-- 底部按钮 -->
+        <Border Grid.Row="2"
+                Background="#F8F9FA"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Margin="-15,15,-15,-15"
+                Padding="15,15,15,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- 版权信息 -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Copyright}"
+                              FontSize="11"
+                              Foreground="#666666"/>
+                </StackPanel>
+                
+                <!-- 关闭按钮 -->
+                <Button Grid.Column="1"
+                        Content="閉じる"
+                        Width="80"
+                        HorizontalAlignment="Right"
+                        HorizontalContentAlignment="Center"
+                        Click="CloseButton_Click">
+                    <Button.Styles>
+                        <Style Selector="Button">
+                            <Setter Property="Background" Value="#4A6FA5"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="12,6"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Background" Value="#3A5A8A"/>
+                        </Style>
+                        <Style Selector="Button:pressed">
+                            <Setter Property="Background" Value="#2A4A7A"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

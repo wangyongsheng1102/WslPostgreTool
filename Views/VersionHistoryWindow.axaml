@@ -1,0 +1,176 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:WslPostgreTool.ViewModels"
+        x:Class="WslPostgreTool.Views.VersionHistoryWindow"
+        x:DataType="local:VersionHistoryViewModel"
+        mc:Ignorable="d"
+        Title="バージョン履歴"
+        Width="600"
+        Height="450"
+        MinWidth="500"
+        MinHeight="300"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="avares://WslPostgreTool/Assets/LXGWWenKai-Bold.ttf#霞鹜文楷">
+    
+    <Design.DataContext>
+        <local:VersionHistoryViewModel/>
+    </Design.DataContext>
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 标题区域 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="📋 バージョン履歴"
+                      FontSize="18"
+                      FontWeight="Bold"
+                      Foreground="DarkSlateBlue"/>
+            <TextBlock Text="データ比較・インポート・エクスポートツール「Postgre版」の更新履歴"
+                      FontSize="12"
+                      Foreground="Gray"
+                      Margin="0,5,0,0"/>
+        </StackPanel>
+        
+        <!-- 版本历史列表 -->
+        <Border Grid.Row="1"
+                BorderBrush="#E0E0E0"
+                BorderThickness="1"
+                CornerRadius="5"
+                Padding="0">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding VersionHistory}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="10,8"
+                                    Padding="12,10"
+                                    Background="White"
+                                    BorderBrush="#E0E0E0"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <!-- 版本号标签 -->
+                                    <Border Grid.Column="0"
+                                            Grid.Row="0"
+                                            Grid.RowSpan="3"
+                                            Background="#4A6FA5"
+                                            CornerRadius="3"
+                                            Padding="8,4"
+                                            Margin="0,0,12,0"
+                                            VerticalAlignment="Top">
+                                        <TextBlock Text="{Binding Version}"
+                                                  Foreground="White"
+                                                  FontWeight="Bold"
+                                                  FontSize="14"/>
+                                    </Border>
+                                    
+                                    <!-- 版本标题 -->
+                                    <TextBlock Grid.Column="1"
+                                               Grid.Row="0"
+                                               Text="{Binding Title}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="#333333"/>
+                                    
+                                    <!-- 发布日期 -->
+                                    <TextBlock Grid.Column="2"
+                                               Grid.Row="0"
+                                               Text="{Binding ReleaseDate, StringFormat='リリース日: {0:yyyy/MM/dd}'}"
+                                               FontSize="12"
+                                               Foreground="Gray"
+                                               HorizontalAlignment="Right"/>
+                                    
+                                    <!-- 更新内容 -->
+                                    <TextBlock Grid.Column="1"
+                                               Grid.ColumnSpan="2"
+                                               Grid.Row="1"
+                                               Text="{Binding Description}"
+                                               FontSize="13"
+                                               Foreground="#555555"
+                                               Margin="0,8,0,0"
+                                               TextWrapping="Wrap"/>
+                                    
+                                    <!-- 更新类型标签 -->
+                                    <StackPanel Grid.Column="1"
+                                                Grid.Row="2"
+                                                Orientation="Horizontal"
+                                                Margin="0,10,0,0">
+                                        <Border Background="{Binding UpdateTypeColor}"
+                                                CornerRadius="3"
+                                                Padding="6,2">
+                                            <TextBlock Text="{Binding UpdateType}"
+                                                      FontSize="11"
+                                                      FontWeight="SemiBold"
+                                                      Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+        
+        <!-- 底部按钮 -->
+        <Border Grid.Row="2"
+                Background="#F8F9FA"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Margin="-15,15,-15,-15"
+                Padding="15,15,15,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- 当前版本信息 -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CurrentVersionInfo}"
+                              FontSize="12"
+                              Foreground="#666666"/>
+                </StackPanel>
+                
+                <!-- 关闭按钮 -->
+                <Button Grid.Column="1"
+                        Content="閉じる"
+                        Width="80"
+                        HorizontalContentAlignment="Center"
+                        Click="CloseButton_Click">
+                    <Button.Styles>
+                        <Style Selector="Button">
+                            <Setter Property="Background" Value="#4A6FA5"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="12,6"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Background" Value="#3A5A8A"/>
+                        </Style>
+                        <Style Selector="Button:pressed">
+                            <Setter Property="Background" Value="#2A4A7A"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -64,5 +64,31 @@ public partial class MainView : Window
             e.Handled = true;
         }
     }
+    
+    private void VersionTextBlock_PointerPressed(object sender, PointerPressedEventArgs e)
+    {
+        var versionWindow = new VersionHistoryWindow();
+        versionWindow.Show();
+    }
+    private void AuthorTextBlock_PointerPressed(object sender, PointerPressedEventArgs e)
+    {
+        var authorInfoWindow = new AuthorInfoWindow();
+        authorInfoWindow.Show();
+    }
+    
+    private void ConnectionsCount_PointerPressed(object sender, PointerPressedEventArgs e)
+    {
+        // 跳转到第一个 TabItem（接続設定）
+        if (MainTabControl != null && MainTabControl.Items != null && MainTabControl.Items.Count > 0)
+        {
+            // 方法1：通过索引选择
+            MainTabControl.SelectedIndex = 0;
+        
+            // 方法2：通过具体的 TabItem 选择
+            MainTabControl.SelectedItem = ConnectionTab;
+        }
+    
+        e.Handled = true;
+    }
 }
 
