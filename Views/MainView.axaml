@@ -361,7 +361,8 @@
                             Padding="10,8"
                             FontSize="13"
                             CornerRadius="4"
-                            HorizontalAlignment="Stretch"/>
+                            HorizontalAlignment="Stretch"
+                            VerticalContentAlignment="Center"/>
 
                     <!-- ホスト -->
                     <TextBox Grid.Column="1"
@@ -372,7 +373,8 @@
                             Padding="10,8"
                             FontSize="13"
                             CornerRadius="4"
-                            HorizontalAlignment="Stretch"/>
+                            HorizontalAlignment="Stretch"
+                            VerticalContentAlignment="Center"/>
 
                     <!-- ポート -->
                     <TextBox Grid.Column="2"
@@ -383,7 +385,8 @@
                             Padding="10,8"
                             FontSize="13"
                             CornerRadius="4"
-                            HorizontalAlignment="Stretch"/>
+                            HorizontalAlignment="Stretch"
+                            VerticalContentAlignment="Center"/>
 
                     <!-- データベース -->
                     <TextBox Grid.Column="3"
@@ -394,29 +397,39 @@
                             Padding="10,8"
                             FontSize="13"
                             CornerRadius="4"
-                            HorizontalAlignment="Stretch"/>
+                            HorizontalAlignment="Stretch"
+                            VerticalContentAlignment="Center"/>
 
-                    <!-- ユーザー -->
-                    <TextBox Grid.Column="4"
-                            Text="{Binding User, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            Margin="6,0"
-                            BorderThickness="1"
-                            BorderBrush="#CED4DA"
-                            Padding="10,8"
-                            FontSize="13"
-                            CornerRadius="4"
-                            HorizontalAlignment="Stretch"/>
+                    <!-- ユーザー - 可编辑的下拉列表 -->
+                    <ComboBox Grid.Column="4"
+                              IsEditable="True"
+                              Text="{Binding User, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="6,0"
+                              Padding="10,8"
+                              FontSize="13"
+                              CornerRadius="4"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="ユーザーを選択または入力">
+                        <ComboBoxItem>cisdb_unisys</ComboBoxItem>
+                        <ComboBoxItem>orderdb_unisys</ComboBoxItem>
+                        <ComboBoxItem>portaldb_unisys</ComboBoxItem>
+                    </ComboBox>
 
                     <!-- パスワード -->
-                    <TextBox Grid.Column="5"
-                            Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            Margin="6,0"
-                            BorderThickness="1"
-                            BorderBrush="#CED4DA"
-                            Padding="10,8"
-                            FontSize="13"
-                            CornerRadius="4"
-                            HorizontalAlignment="Stretch"/>
+                    <ComboBox Grid.Column="5"
+                              IsEditable="True"
+                              Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              Margin="6,0"
+                              Padding="10,8"
+                              FontSize="13"
+                              CornerRadius="4"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="パスワードを選択または入力"
+                              VerticalContentAlignment="Center">
+                        <ComboBoxItem>cisdb_unisys</ComboBoxItem>
+                        <ComboBoxItem>orderdb_unisys</ComboBoxItem>
+                        <ComboBoxItem>portaldb_unisys</ComboBoxItem>
+                    </ComboBox>
 
                     <!-- WSLディストリビューション -->
                     <ComboBox Grid.Column="6"
@@ -426,7 +439,8 @@
                              Padding="10,8"
                              FontSize="13"
                              CornerRadius="4"
-                             HorizontalAlignment="Stretch"/>
+                             HorizontalAlignment="Stretch"
+                             VerticalContentAlignment="Center"/>
 
                     <!-- 操作 -->
                     <Button Grid.Column="7"
