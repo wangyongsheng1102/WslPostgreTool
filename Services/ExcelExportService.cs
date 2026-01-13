@@ -336,11 +336,48 @@ public class ExcelExportService
             currentRow++;
 
             // 新システム：增删改后 - 后数据
-            foreach (var result in newResults)
+            // 创建新系统结果的主键映射
+            var newResultMapForAfter = newResults.ToDictionary(r => 
+                string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
+            
+            // 按照旧系统的顺序创建新系统的数据行，确保条数对应
+            foreach (var oldResult in oldResults)
             {
-                string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                string pkKey = string.Join("|", oldResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
-                string statusLabel = GetAfterLabel(result.Status);
+                // 检查新系统是否有对应的主键
+                bool hasNewResult = newResultMapForAfter.TryGetValue(pkKey, out var newResult);
+                
+                string statusLabel = hasNewResult ? GetAfterLabel(newResult.Status) : "";
+                worksheet.Cell(currentRow, 2).Value = statusLabel;
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                // 存储"后"数据行的位置（即使新系统没有对应数据，也要记录位置）
+                newAfterRowMap[pkKey] = currentRow;
+
+                int dataCol = headerStartCol;
+                foreach (var column in columns)
+                {
+                    // 如果新系统有对应的数据，使用实际数据；否则为空（占位）
+                    object? value = hasNewResult ? GetNewValue(newResult, column) : null;
+                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
+                    dataCol++;
+                }
+
+                currentRow++;
+            }
+            
+            // 处理新系统有但旧系统没有的数据（追加到后面）
+            foreach (var newResult in newResults)
+            {
+                string pkKey = string.Join("|", newResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
+                // 如果这个主键已经在oldResults中处理过，跳过
+                if (newAfterRowMap.ContainsKey(pkKey))
+                    continue;
+                
+                string statusLabel = GetAfterLabel(newResult.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
@@ -350,8 +387,8 @@ public class ExcelExportService
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    // New数据：从NewValues获取（删除场合NewValues为空，会自然返回null）
-                    object? value = GetNewValue(result, column);
+                    // New数据：从NewValues获取
+                    object? value = GetNewValue(newResult, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
@@ -392,31 +429,28 @@ public class ExcelExportService
             // 收集所有主键（确保新旧数据有几条，就比较几个）
             var allPkKeys = oldAfterRowMap.Keys.Union(newAfterRowMap.Keys).Distinct().ToList();
 
-            // 创建一个专门用于空值比较的单元格（在比较结果区域之前）
-            int emptyCellRow = currentRow - 1; // 使用比较结果列头行的上一行
-            int emptyCellCol = headerStartCol;
-            worksheet.Cell(emptyCellRow, emptyCellCol).Value = ""; // 确保这个单元格是空的
-            string emptyCellRef = GetCellReference(emptyCellRow, emptyCellCol);
-
             // 对每个主键进行比较（比较的都是"后"数据）
-            foreach (var pkKey in allPkKeys)
+            // 按照旧系统的顺序进行比较，确保新旧系统的数据行一一对应
+            foreach (var oldResult in oldResults)
             {
+                string pkKey = string.Join("|", oldResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
                 bool hasOld = oldAfterRowMap.TryGetValue(pkKey, out int oldRow);
                 bool hasNew = newAfterRowMap.TryGetValue(pkKey, out int newRow);
 
                 // 比较标签：强调现行/新系统各自的"后"状态
-                RowComparisonResult? oldResult = null;
-                RowComparisonResult? newResult = null;
+                RowComparisonResult? oldResultForStatus = null;
+                RowComparisonResult? newResultForStatus = null;
                 ComparisonStatus? oldStatus = null;
                 ComparisonStatus? newStatus = null;
 
-                if (hasOld && oldResultMap.TryGetValue(pkKey, out oldResult))
+                if (hasOld && oldResultMap.TryGetValue(pkKey, out oldResultForStatus))
                 {
-                    oldStatus = oldResult.Status;
+                    oldStatus = oldResultForStatus.Status;
                 }
-                if (hasNew && newResultMap.TryGetValue(pkKey, out newResult))
+                if (hasNew && newResultMap.TryGetValue(pkKey, out newResultForStatus))
                 {
-                    newStatus = newResult.Status;
+                    newStatus = newResultForStatus.Status;
                 }
 
                 worksheet.Cell(currentRow, 2).Value = BuildCompareLabel(oldStatus, newStatus);
@@ -426,9 +460,64 @@ public class ExcelExportService
                 foreach (var column in columns)
                 {
                     // 比较两个"后"单元格（Old的"后"和New的"后"）
-                    // 始终使用单元格引用，即使单元格是空的
-                    string oldCellRef = hasOld ? GetCellReference(oldRow, colIndex) : emptyCellRef;
-                    string newCellRef = hasNew ? GetCellReference(newRow, colIndex) : emptyCellRef;
+                    // 由于已经按照旧系统顺序创建了新系统的数据行，所以hasOld和hasNew应该都是true
+                    // 即使新系统没有对应数据，也会有空行占位，所以newRow应该存在
+                    string oldCellRef = GetCellReference(oldRow, colIndex);
+                    string newCellRef = hasNew ? GetCellReference(newRow, colIndex) : GetCellReference(oldRow, colIndex); // 如果新系统没有，使用旧系统的位置（但应该是空行）
+                    string formula = $"=EXACT({oldCellRef},{newCellRef})";
+                    
+                    var cell = worksheet.Cell(currentRow, colIndex);
+                    cell.SetFormulaA1(formula);
+                    ApplyCellBorder(cell);
+
+                    // 设置条件格式：FALSE时黄色背景
+                    var conditionalFormat = cell.AddConditionalFormat();
+                    var currentCellRef = GetCellReference(currentRow, colIndex);
+                    conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                    
+                    colIndex++;
+                }
+
+                currentRow++;
+            }
+            
+            // 处理新系统有但旧系统没有的数据（追加到后面）
+            foreach (var newResult in newResults)
+            {
+                string pkKey = string.Join("|", newResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
+                // 如果这个主键已经在oldResults中处理过，跳过
+                if (oldAfterRowMap.ContainsKey(pkKey))
+                    continue;
+                
+                bool hasOld = oldAfterRowMap.TryGetValue(pkKey, out int oldRow);
+                bool hasNew = newAfterRowMap.TryGetValue(pkKey, out int newRow);
+
+                // 比较标签
+                RowComparisonResult? oldResultForStatus = null;
+                RowComparisonResult? newResultForStatus = null;
+                ComparisonStatus? oldStatus = null;
+                ComparisonStatus? newStatus = null;
+
+                if (hasOld && oldResultMap.TryGetValue(pkKey, out oldResultForStatus))
+                {
+                    oldStatus = oldResultForStatus.Status;
+                }
+                if (hasNew && newResultMap.TryGetValue(pkKey, out newResultForStatus))
+                {
+                    newStatus = newResultForStatus.Status;
+                }
+
+                worksheet.Cell(currentRow, 2).Value = BuildCompareLabel(oldStatus, newStatus);
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                colIndex = headerStartCol;
+                foreach (var column in columns)
+                {
+                    // 比较两个"后"单元格
+                    // 这种情况下，oldRow应该不存在，newRow存在
+                    string oldCellRef = hasOld ? GetCellReference(oldRow, colIndex) : GetCellReference(newRow, colIndex); // 如果旧系统没有，使用新系统的位置（但应该是空行）
+                    string newCellRef = GetCellReference(newRow, colIndex);
                     string formula = $"=EXACT({oldCellRef},{newCellRef})";
                     
                     var cell = worksheet.Cell(currentRow, colIndex);
