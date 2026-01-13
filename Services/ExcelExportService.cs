@@ -139,16 +139,8 @@ public class ExcelExportService
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
-                // 根据Status确定标签
-                string statusLabel = result.Status switch
-                {
-                    ComparisonStatus.Deleted => "削除前",
-                    ComparisonStatus.Added => "追加前",
-                    ComparisonStatus.Updated => "更新前",
-                    _ => "更新前"
-                };
-
-                // 前 = Base数据 (OldValues)
+                // 现行系统：前 = Base数据 (OldValues)
+                string statusLabel = $"現行{GetBeforeLabel(result.Status)}";
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
@@ -165,14 +157,7 @@ public class ExcelExportService
                 currentRow++;
 
                 // 后 = Old数据 (NewValues)
-                string statusLabel2 = result.Status switch
-                {
-                    ComparisonStatus.Deleted => "削除後",
-                    ComparisonStatus.Added => "追加後",
-                    ComparisonStatus.Updated => "更新後",
-                    _ => "更新後"
-                };
-
+                string statusLabel2 = $"現行{GetAfterLabel(result.Status)}";
                 worksheet.Cell(currentRow, 2).Value = statusLabel2;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
@@ -211,16 +196,8 @@ public class ExcelExportService
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
-                // 根据Status确定标签
-                string statusLabel = result.Status switch
-                {
-                    ComparisonStatus.Deleted => "削除前",
-                    ComparisonStatus.Added => "追加前",
-                    ComparisonStatus.Updated => "更新前",
-                    _ => "更新前"
-                };
-
-                // 前 = Base数据 (OldValues)
+                // 新系统：前 = Base数据 (OldValues)
+                string statusLabel = $"新{GetBeforeLabel(result.Status)}";
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
@@ -237,14 +214,7 @@ public class ExcelExportService
                 currentRow++;
 
                 // 后 = New数据 (NewValues)
-                string statusLabel2 = result.Status switch
-                {
-                    ComparisonStatus.Deleted => "削除後",
-                    ComparisonStatus.Added => "追加後",
-                    ComparisonStatus.Updated => "更新後",
-                    _ => "更新後"
-                };
-
+                string statusLabel2 = $"新{GetAfterLabel(result.Status)}";
                 worksheet.Cell(currentRow, 2).Value = statusLabel2;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
@@ -304,35 +274,22 @@ public class ExcelExportService
                 bool hasOld = oldDataRowMap.TryGetValue(pkKey, out int oldRow);
                 bool hasNew = newDataRowMap.TryGetValue(pkKey, out int newRow);
 
-                // 确定状态标签（根据"后"的状态）
-                string statusLabel = "";
+                // 比较标签：强调现行/新系统各自的“后”状态
                 RowComparisonResult? oldResult = null;
                 RowComparisonResult? newResult = null;
+                ComparisonStatus? oldStatus = null;
+                ComparisonStatus? newStatus = null;
 
                 if (hasOld && oldResultMap.TryGetValue(pkKey, out oldResult))
                 {
-                    // 根据oldResult的状态确定标签（因为比较的是"后"）
-                    statusLabel = oldResult.Status switch
-                    {
-                        ComparisonStatus.Deleted => "削除後",
-                        ComparisonStatus.Added => "追加後",
-                        ComparisonStatus.Updated => "更新後",
-                        _ => "更新後"
-                    };
+                    oldStatus = oldResult.Status;
                 }
-                else if (hasNew && newResultMap.TryGetValue(pkKey, out newResult))
+                if (hasNew && newResultMap.TryGetValue(pkKey, out newResult))
                 {
-                    // 根据newResult的状态确定标签（因为比较的是"后"）
-                    statusLabel = newResult.Status switch
-                    {
-                        ComparisonStatus.Deleted => "削除後",
-                        ComparisonStatus.Added => "追加後",
-                        ComparisonStatus.Updated => "更新後",
-                        _ => "更新後"
-                    };
+                    newStatus = newResult.Status;
                 }
 
-                worksheet.Cell(currentRow, 2).Value = statusLabel;
+                worksheet.Cell(currentRow, 2).Value = BuildCompareLabel(oldStatus, newStatus);
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 colIndex = headerStartCol;
@@ -485,6 +442,31 @@ public class ExcelExportService
         }
 
         return null;
+    }
+
+    private static string GetBeforeLabel(ComparisonStatus status) =>
+        status switch
+        {
+            ComparisonStatus.Deleted => "削除前",
+            ComparisonStatus.Added => "追加前",
+            ComparisonStatus.Updated => "更新前",
+            _ => "更新前"
+        };
+
+    private static string GetAfterLabel(ComparisonStatus status) =>
+        status switch
+        {
+            ComparisonStatus.Deleted => "削除後",
+            ComparisonStatus.Added => "追加後",
+            ComparisonStatus.Updated => "更新後",
+            _ => "更新後"
+        };
+
+    private static string BuildCompareLabel(ComparisonStatus? oldStatus, ComparisonStatus? newStatus)
+    {
+        string oldText = oldStatus.HasValue ? $"現行{GetAfterLabel(oldStatus.Value)}" : "現行(該当なし)";
+        string newText = newStatus.HasValue ? $"新{GetAfterLabel(newStatus.Value)}" : "新(該当なし)";
+        return $"{oldText} / {newText}";
     }
 
     private static void ApplyCellBorder(IXLCell cell)
