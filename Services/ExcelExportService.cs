@@ -14,7 +14,7 @@ public class ExcelExportService
     private readonly DatabaseService _databaseService = new();
 
     /// <summary>
-    /// 比較結果を Excel にエクスポート（2つのシート：Base vs Old と Base vs New）
+    /// 比較結果を Excel にエクスポート（1つのシートに統合）
     /// </summary>
     public void ExportComparisonResults(
         string filePath, 
@@ -23,23 +23,7 @@ public class ExcelExportService
         string connectionString)
     {
         using var workbook = new XLWorkbook();
-        
-        // Base vs Old のシート
-        CreateComparisonSheet(workbook, "更新前 vs 旧", baseVsOldResults, connectionString);
-        
-        // Base vs New のシート
-        CreateComparisonSheet(workbook, "更新前 vs 新", baseVsNewResults, connectionString);
-
-        workbook.SaveAs(filePath);
-    }
-
-    private void CreateComparisonSheet(
-        XLWorkbook workbook, 
-        string sheetName, 
-        List<RowComparisonResult> results,
-        string connectionString)
-    {
-        var worksheet = workbook.Worksheets.Add(sheetName);
+        var worksheet = workbook.Worksheets.Add("データ比較");
 
         // A1: テストデータ参照用（红色字体）
         worksheet.Cell(1, 1).Value = "[自動採番]、[登録/更新/削除日時]、[登録/更新/削除者]、[登録/更新/削除機能]のデータ比較結果が「FALSE」の場合、補足説明が必要がない。";
@@ -49,23 +33,21 @@ public class ExcelExportService
         worksheet.Cell(1, 1).Style.Font.SetFontName("MS PGothic");
         worksheet.Column("A").Width = 3.5;
 
-        if (!results.Any())
-        {
-            worksheet.Columns().AdjustToContents();
-            return;
-        }
+        int currentRow = 3;
 
         // テーブルごとにグループ化
-        var groupedByTable = results.GroupBy(r => r.TableName).ToList();
+        var allTableNames = baseVsOldResults.Select(r => r.TableName)
+            .Union(baseVsNewResults.Select(r => r.TableName))
+            .Distinct()
+            .OrderBy(t => t)
+            .ToList();
 
-        int currentRow = 3; // 从第3行开始（A1是标题，第2行留空）
-
-        foreach (var tableGroup in groupedByTable)
+        foreach (var tableName in allTableNames)
         {
-            var tableName = tableGroup.Key;
-            var tableResults = tableGroup.ToList();
+            var oldResults = baseVsOldResults.Where(r => r.TableName == tableName).ToList();
+            var newResults = baseVsNewResults.Where(r => r.TableName == tableName).ToList();
 
-            // 解析表名（schema.table格式）
+            // 解析表名
             var parts = tableName.Split('.');
             string schemaName = parts.Length >= 2 ? parts[0] : "public";
             string nameOnly = parts.Length >= 2 ? string.Join(".", parts.Skip(1)) : tableName;
@@ -81,13 +63,12 @@ public class ExcelExportService
             }
             catch
             {
-                // 如果查询失败，使用表名作为注释
                 tableComment = nameOnly;
             }
 
-            // 收集所有列名（主键 + 旧值 + 新值）
+            // 收集所有列名
             var allColumns = new HashSet<string>();
-            foreach (var result in tableResults)
+            foreach (var result in oldResults.Concat(newResults))
             {
                 foreach (var key in result.PrimaryKeyValues.Keys)
                     allColumns.Add(key);
@@ -98,176 +79,324 @@ public class ExcelExportService
             }
 
             var columns = allColumns.OrderBy(c => c).ToList();
-
-            // C列开始：表日文名、表名（绿色底色）
             int headerStartCol = 3;
-            worksheet.Cell(currentRow, headerStartCol).Value = tableComment;
-            // worksheet.Cell(currentRow, headerStartCol).Style.Fill.BackgroundColor = XLColor.LightGreen;
-            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
-            
-            currentRow += 1;
-            
-            worksheet.Cell(currentRow, headerStartCol).Value = tableName;
-            // worksheet.Cell(currentRow, headerStartCol).Style.Fill.BackgroundColor = XLColor.LightGreen;
-            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
 
+            // 表头
+            worksheet.Cell(currentRow, headerStartCol).Value = tableComment;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
+            currentRow++;
+            worksheet.Cell(currentRow, headerStartCol).Value = tableName;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
             currentRow++;
 
-            // 列头：列日文名、列英文名（绿色底色）
-            int colHeaderRow = currentRow;
-            worksheet.Cell(colHeaderRow, 1).Value = ""; // A列留空
-            worksheet.Cell(colHeaderRow, 2).Value = ""; // B列留空（用于"更新前"/"更新後"）
+            // 列头：列日文名（第一行）
+            int colHeaderRow1 = currentRow;
+            worksheet.Cell(colHeaderRow1, 1).Value = "";
+            worksheet.Cell(colHeaderRow1, 2).Value = "";
             
             int colIndex = headerStartCol;
             foreach (var column in columns)
             {
                 var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
-                worksheet.Cell(colHeaderRow, colIndex).Value = columnComment; // 日文名
-                worksheet.Cell(colHeaderRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(colHeaderRow, colIndex).Style.Font.Bold = true;
-                worksheet.Cell(colHeaderRow, colIndex).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                worksheet.Cell(colHeaderRow, colIndex).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-                worksheet.Cell(colHeaderRow, colIndex).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
-                worksheet.Cell(colHeaderRow, colIndex).Style.Border.RightBorder = XLBorderStyleValues.Thin;
-                
+                worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
                 colIndex++;
             }
 
-            currentRow += 1;
+            currentRow++;
+
+            // 列头：列英文名（第二行）
             colIndex = headerStartCol;
             foreach (var column in columns)
             {
-                worksheet.Cell(currentRow, colIndex).Value = column; // 英文名
+                worksheet.Cell(currentRow, colIndex).Value = column;
                 worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
                 worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
-                worksheet.Cell(currentRow, colIndex).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                worksheet.Cell(currentRow, colIndex).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-                worksheet.Cell(currentRow, colIndex).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
-                worksheet.Cell(currentRow, colIndex).Style.Border.RightBorder = XLBorderStyleValues.Thin;
-                
+                ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
                 colIndex++;
             }
 
-            currentRow += 1;
+            currentRow++;
 
-            // 数据行：每两行显示一个比较结果
-            foreach (var result in tableResults)
+            // 现行系统（Base vs Old）
+            int oldSystemStartRow = currentRow;
+            worksheet.Cell(currentRow, 1).Value = "現行システム";
+            worksheet.Cell(currentRow, 1).Style.Font.Bold = true;
+            worksheet.Cell(currentRow, 1).Style.Font.FontSize = 12;
+            currentRow++;
+
+            // 存储现行系统的数据行位置（用于后续比较）
+            var oldDataRowMap = new Dictionary<string, int>(); // 主键 -> 数据行
+
+            // 现行系统的数据
+            foreach (var result in oldResults)
             {
-                // 更新前行（B列：更新前）
-                worksheet.Cell(currentRow, 2).Value = "更新前";
+                string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                oldDataRowMap[pkKey] = currentRow + 1; // 更新後行的位置
+
+                string statusLabel = result.Status switch
+                {
+                    ComparisonStatus.Deleted => "削除前",
+                    ComparisonStatus.Added => "追加前",
+                    ComparisonStatus.Updated => "更新前",
+                    _ => "更新前"
+                };
+
+                // 更新前行
+                worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    object? value = null;
-                    
-                    // 优先从主键获取，然后从旧值获取
-                    if (result.PrimaryKeyValues.TryGetValue(column, out var pkValue))
-                    {
-                        value = pkValue;
-                    }
-                    else if (result.OldValues.TryGetValue(column, out var oldValue))
-                    {
-                        value = oldValue;
-                    }
-
-                    // 新增场合：更新前行空白
-                    if (result.Status == ComparisonStatus.Added)
-                    {
-                        value = null;
-                    }
-
-                    // 日文名列和英文名列都写入相同的值
+                    object? value = GetValueForColumn(result, column, isOldRow: true);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
-                    worksheet.Cell(currentRow, dataCol).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                    worksheet.Cell(currentRow, dataCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-                    worksheet.Cell(currentRow, dataCol).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
-                    worksheet.Cell(currentRow, dataCol).Style.Border.RightBorder = XLBorderStyleValues.Thin;
+                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
-                    // worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
-                    // dataCol++;
                 }
 
                 currentRow++;
 
-                // 更新後行（B列：更新後）
-                string statusLabel = result.Status switch
+                // 更新後行
+                string statusLabel2 = result.Status switch
                 {
-                    ComparisonStatus.Deleted => "更新後（削除）",
-                    ComparisonStatus.Added => "更新後（追加）",
-                    ComparisonStatus.Updated => "更新後（更新）",
+                    ComparisonStatus.Deleted => "削除後",
+                    ComparisonStatus.Added => "追加後",
+                    ComparisonStatus.Updated => "更新後",
                     _ => "更新後"
                 };
-                
-                worksheet.Cell(currentRow, 2).Value = statusLabel;
+
+                worksheet.Cell(currentRow, 2).Value = statusLabel2;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 dataCol = headerStartCol;
-
                 foreach (var column in columns)
                 {
-                    object? value = null;
-                    bool isChanged = false;
-
-                    // 优先从主键获取，然后从新值获取
-                    if (result.PrimaryKeyValues.TryGetValue(column, out var pkValue))
-                    {
-                        value = pkValue;
-                    }
-                    else if (result.NewValues.TryGetValue(column, out var newValue))
-                    {
-                        value = newValue;
-                        
-                        // 检查是否变更（更新场合）
-                        if (result.Status == ComparisonStatus.Updated)
-                        {
-                            result.OldValues.TryGetValue(column, out var oldValue);
-                            if (!Equals(oldValue, newValue))
-                            {
-                                isChanged = true;
-                            }
-                        }
-                    }
-
-                    // 删除场合：更新後行空白
-                    if (result.Status == ComparisonStatus.Deleted)
-                    {
-                        value = null;
-                    }
-
-                    // 日文名列和英文名列都写入相同的值
+                    object? value = GetValueForColumn(result, column, isOldRow: false);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
-                    worksheet.Cell(currentRow, dataCol).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                    worksheet.Cell(currentRow, dataCol).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-                    worksheet.Cell(currentRow, dataCol).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
-                    worksheet.Cell(currentRow, dataCol).Style.Border.RightBorder = XLBorderStyleValues.Thin;
-                    
-                    // 如果是变更的字段，添加黄色底色（两列都标记）
-                    if (isChanged)
-                    {
-                        worksheet.Cell(currentRow, dataCol).Style.Fill.BackgroundColor = XLColor.Yellow;
-                        worksheet.Cell(currentRow - 1, dataCol).Style.Fill.BackgroundColor = XLColor.Yellow;
-                    }
-                    
+                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
-                    // worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
-                    //
-                    // if (isChanged)
-                    // {
-                    //     worksheet.Cell(currentRow, dataCol).Style.Fill.BackgroundColor = XLColor.Yellow;
-                    // }
-                    
-                    // dataCol++;
                 }
 
                 currentRow++;
-                currentRow++; // 空行分隔
+                currentRow++; // 空行
             }
 
-            currentRow++; // 表之间的空行
+            currentRow += 2; // 系统之间的空行
+
+            // 新システム（Base vs New）
+            int newSystemStartRow = currentRow;
+            worksheet.Cell(currentRow, 1).Value = "新システム";
+            worksheet.Cell(currentRow, 1).Style.Font.Bold = true;
+            worksheet.Cell(currentRow, 1).Style.Font.FontSize = 12;
+            currentRow++;
+
+            // 存储新系统的数据行位置
+            var newDataRowMap = new Dictionary<string, int>();
+
+            // 新系统的数据
+            foreach (var result in newResults)
+            {
+                string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                newDataRowMap[pkKey] = currentRow + 1; // 更新後行的位置
+
+                string statusLabel = result.Status switch
+                {
+                    ComparisonStatus.Deleted => "削除前",
+                    ComparisonStatus.Added => "追加前",
+                    ComparisonStatus.Updated => "更新前",
+                    _ => "更新前"
+                };
+
+                // 更新前行
+                worksheet.Cell(currentRow, 2).Value = statusLabel;
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                int dataCol = headerStartCol;
+                foreach (var column in columns)
+                {
+                    object? value = GetValueForColumn(result, column, isOldRow: true);
+                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
+                    dataCol++;
+                }
+
+                currentRow++;
+
+                // 更新後行
+                string statusLabel2 = result.Status switch
+                {
+                    ComparisonStatus.Deleted => "削除後",
+                    ComparisonStatus.Added => "追加後",
+                    ComparisonStatus.Updated => "更新後",
+                    _ => "更新後"
+                };
+
+                worksheet.Cell(currentRow, 2).Value = statusLabel2;
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                dataCol = headerStartCol;
+                foreach (var column in columns)
+                {
+                    object? value = GetValueForColumn(result, column, isOldRow: false);
+                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
+                    dataCol++;
+                }
+
+                currentRow++;
+                currentRow++; // 空行
+            }
+
+            currentRow += 2;
+
+            // 比較結果
+            worksheet.Cell(currentRow, 1).Value = "比較結果";
+            worksheet.Cell(currentRow, 1).Style.Font.Bold = true;
+            worksheet.Cell(currentRow, 1).Style.Font.FontSize = 12;
+            currentRow++;
+
+            // 比较结果列头
+            worksheet.Cell(currentRow, 2).Value = "";
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
+                worksheet.Cell(currentRow, colIndex).Value = columnComment;
+                worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
+                colIndex++;
+            }
+            currentRow++;
+
+            // 比较结果数据行：匹配相同主键的记录进行比较
+            var allPkKeys = oldDataRowMap.Keys.Union(newDataRowMap.Keys).Distinct().ToList();
+
+            foreach (var pkKey in allPkKeys)
+            {
+                bool hasOld = oldDataRowMap.TryGetValue(pkKey, out int oldRow);
+                bool hasNew = newDataRowMap.TryGetValue(pkKey, out int newRow);
+
+                // 确定状态标签
+                string statusLabel = "";
+                if (hasOld && hasNew)
+                {
+                    var oldResult = oldResults.FirstOrDefault(r => 
+                        string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")) == pkKey);
+                    statusLabel = oldResult?.Status switch
+                    {
+                        ComparisonStatus.Deleted => "削除前",
+                        ComparisonStatus.Added => "追加前",
+                        ComparisonStatus.Updated => "更新前",
+                        _ => "更新前"
+                    };
+                }
+                else if (hasOld)
+                {
+                    statusLabel = "削除前";
+                }
+                else if (hasNew)
+                {
+                    statusLabel = "追加前";
+                }
+
+                worksheet.Cell(currentRow, 2).Value = statusLabel;
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                colIndex = headerStartCol;
+                foreach (var column in columns)
+                {
+                    string oldCellRef = hasOld ? GetCellReference(oldRow, colIndex) : "\"\"";
+                    string newCellRef = hasNew ? GetCellReference(newRow, colIndex) : "\"\"";
+
+                    // 使用EXACT函数比较
+                    string formula = $"=EXACT({oldCellRef},{newCellRef})";
+                    var cell = worksheet.Cell(currentRow, colIndex);
+                    cell.FormulaA1 = formula;
+                    ApplyCellBorder(cell);
+
+                    // 设置条件格式：FALSE时黄色背景
+                    var conditionalFormat = cell.AddConditionalFormat();
+                    var currentCellRef = GetCellReference(currentRow, colIndex);
+                    conditionalFormat.WhenFormulaIs($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                    
+                    colIndex++;
+                }
+
+                currentRow++;
+            }
+
+            currentRow += 2; // 表之间的空行
         }
 
+        // 添加条件格式：FALSE结果标记黄色
+        // 由于ClosedXML的限制，我们需要使用VBA或者在工作表打开后手动设置
+        // 这里我们添加一个辅助列或者使用样式标记
+
         worksheet.Columns().AdjustToContents();
+        workbook.SaveAs(filePath);
+    }
+
+    private static object? GetValueForColumn(RowComparisonResult result, string column, bool isOldRow)
+    {
+        // 优先从主键获取
+        if (result.PrimaryKeyValues.TryGetValue(column, out var pkValue))
+        {
+            return pkValue;
+        }
+
+        if (isOldRow)
+        {
+            // 更新前行：从OldValues获取
+            if (result.OldValues.TryGetValue(column, out var oldValue))
+            {
+                return oldValue;
+            }
+            // 新增场合：更新前行空白
+            if (result.Status == ComparisonStatus.Added)
+            {
+                return null;
+            }
+        }
+        else
+        {
+            // 更新後行：从NewValues获取
+            if (result.NewValues.TryGetValue(column, out var newValue))
+            {
+                return newValue;
+            }
+            // 删除场合：更新後行空白
+            if (result.Status == ComparisonStatus.Deleted)
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private static void ApplyCellBorder(IXLCell cell)
+    {
+        cell.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+        cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+        cell.Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+        cell.Style.Border.RightBorder = XLBorderStyleValues.Thin;
+    }
+
+    private static string GetCellReference(int row, int column)
+    {
+        // 将列号转换为Excel列名（1=A, 2=B, 3=C, ...）
+        string columnName = "";
+        int col = column;
+        while (col > 0)
+        {
+            col--;
+            columnName = (char)('A' + (col % 26)) + columnName;
+            col /= 26;
+        }
+        return $"{columnName}{row}";
     }
 }
