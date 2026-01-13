@@ -15,6 +15,9 @@ public class ExcelExportService
 
     /// <summary>
     /// 比較結果を Excel にエクスポート（1つのシートに統合）
+    /// 前 = Base数据
+    /// 现行的后 = Old数据
+    /// 新的后 = New数据
     /// </summary>
     public void ExportComparisonResults(
         string filePath, 
@@ -120,8 +123,9 @@ public class ExcelExportService
 
             currentRow++;
 
-            // 现行系统（Base vs Old）
-            // 标题在B列
+            // 現行システム
+            // 前 = Base数据 (OldValues)
+            // 后 = Old数据 (NewValues)
             worksheet.Cell(currentRow, 2).Value = "現行システム";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
             worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
@@ -135,6 +139,7 @@ public class ExcelExportService
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
+                // 根据Status确定标签
                 string statusLabel = result.Status switch
                 {
                     ComparisonStatus.Deleted => "削除前",
@@ -150,7 +155,8 @@ public class ExcelExportService
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    object? value = GetValueForColumn(result, column, isBaseData: true);
+                    // Base数据：从OldValues获取
+                    object? value = GetBaseValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
@@ -176,7 +182,8 @@ public class ExcelExportService
                 dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    object? value = GetValueForColumn(result, column, isBaseData: false);
+                    // Old数据：从NewValues获取
+                    object? value = GetOldValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
@@ -188,8 +195,9 @@ public class ExcelExportService
 
             currentRow += 2; // 系统之间的空行
 
-            // 新システム（Base vs New）
-            // 标题在B列
+            // 新システム
+            // 前 = Base数据 (OldValues)
+            // 后 = New数据 (NewValues)
             worksheet.Cell(currentRow, 2).Value = "新システム";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
             worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
@@ -203,6 +211,7 @@ public class ExcelExportService
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
+                // 根据Status确定标签
                 string statusLabel = result.Status switch
                 {
                     ComparisonStatus.Deleted => "削除前",
@@ -218,7 +227,8 @@ public class ExcelExportService
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    object? value = GetValueForColumn(result, column, isBaseData: true);
+                    // Base数据：从OldValues获取
+                    object? value = GetBaseValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
@@ -244,7 +254,8 @@ public class ExcelExportService
                 dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    object? value = GetValueForColumn(result, column, isBaseData: false);
+                    // New数据：从NewValues获取
+                    object? value = GetNewValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
@@ -257,7 +268,8 @@ public class ExcelExportService
             currentRow += 2;
 
             // 比較結果
-            // 标题在B列
+            // 比较：现行的后(Old) vs 新的后(New)
+            // 确保新旧数据有几条，就比较几个
             worksheet.Cell(currentRow, 2).Value = "比較結果";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
             worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
@@ -277,9 +289,16 @@ public class ExcelExportService
             }
             currentRow++;
 
-            // 比较结果数据行：比较Old的"后"和New的"后"
+            // 创建主键到Result的映射，方便查找
+            var oldResultMap = oldResults.ToDictionary(r => 
+                string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
+            var newResultMap = newResults.ToDictionary(r => 
+                string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
+
+            // 收集所有主键（确保新旧数据有几条，就比较几个）
             var allPkKeys = oldDataRowMap.Keys.Union(newDataRowMap.Keys).Distinct().ToList();
 
+            // 对每个主键进行比较（比较的都是"后"数据）
             foreach (var pkKey in allPkKeys)
             {
                 bool hasOld = oldDataRowMap.TryGetValue(pkKey, out int oldRow);
@@ -287,32 +306,30 @@ public class ExcelExportService
 
                 // 确定状态标签（根据"后"的状态）
                 string statusLabel = "";
-                if (hasOld && hasNew)
+                RowComparisonResult? oldResult = null;
+                RowComparisonResult? newResult = null;
+
+                if (hasOld && oldResultMap.TryGetValue(pkKey, out oldResult))
                 {
-                    var oldResult = oldResults.FirstOrDefault(r => 
-                        string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")) == pkKey);
-                    var newResult = newResults.FirstOrDefault(r => 
-                        string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")) == pkKey);
-                    
-                    // 根据"后"的状态确定标签
-                    if (oldResult != null && newResult != null)
+                    // 根据oldResult的状态确定标签（因为比较的是"后"）
+                    statusLabel = oldResult.Status switch
                     {
-                        statusLabel = oldResult.Status switch
-                        {
-                            ComparisonStatus.Deleted => "削除後",
-                            ComparisonStatus.Added => "追加後",
-                            ComparisonStatus.Updated => "更新後",
-                            _ => "更新後"
-                        };
-                    }
+                        ComparisonStatus.Deleted => "削除後",
+                        ComparisonStatus.Added => "追加後",
+                        ComparisonStatus.Updated => "更新後",
+                        _ => "更新後"
+                    };
                 }
-                else if (hasOld)
+                else if (hasNew && newResultMap.TryGetValue(pkKey, out newResult))
                 {
-                    statusLabel = "削除後";
-                }
-                else if (hasNew)
-                {
-                    statusLabel = "追加後";
+                    // 根据newResult的状态确定标签（因为比较的是"后"）
+                    statusLabel = newResult.Status switch
+                    {
+                        ComparisonStatus.Deleted => "削除後",
+                        ComparisonStatus.Added => "追加後",
+                        ComparisonStatus.Updated => "更新後",
+                        _ => "更新後"
+                    };
                 }
 
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
@@ -324,7 +341,7 @@ public class ExcelExportService
                     // 比较两个"后"单元格（Old的"后"和New的"后"）
                     if (hasOld && hasNew)
                     {
-                        // 两个单元格都存在，使用EXACT比较
+                        // 两个"后"单元格都存在，使用EXACT比较
                         string oldCellRef = GetCellReference(oldRow, colIndex);
                         string newCellRef = GetCellReference(newRow, colIndex);
                         string formula = $"=EXACT({oldCellRef},{newCellRef})";
@@ -338,9 +355,41 @@ public class ExcelExportService
                         var currentCellRef = GetCellReference(currentRow, colIndex);
                         conditionalFormat.WhenFormulaIs($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
                     }
+                    else if (hasOld)
+                    {
+                        // 只有Old的"后"存在，New的"后"不存在（可能是删除或新增）
+                        // 比较Old的"后"和空值
+                        string oldCellRef = GetCellReference(oldRow, colIndex);
+                        string formula = $"=EXACT({oldCellRef},\"\")";
+                        
+                        var cell = worksheet.Cell(currentRow, colIndex);
+                        cell.FormulaA1 = formula;
+                        ApplyCellBorder(cell);
+
+                        // 设置条件格式：FALSE时黄色背景
+                        var conditionalFormat = cell.AddConditionalFormat();
+                        var currentCellRef = GetCellReference(currentRow, colIndex);
+                        conditionalFormat.WhenFormulaIs($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                    }
+                    else if (hasNew)
+                    {
+                        // 只有New的"后"存在，Old的"后"不存在（可能是删除或新增）
+                        // 比较空值和New的"后"
+                        string newCellRef = GetCellReference(newRow, colIndex);
+                        string formula = $"=EXACT(\"\",{newCellRef})";
+                        
+                        var cell = worksheet.Cell(currentRow, colIndex);
+                        cell.FormulaA1 = formula;
+                        ApplyCellBorder(cell);
+
+                        // 设置条件格式：FALSE时黄色背景
+                        var conditionalFormat = cell.AddConditionalFormat();
+                        var currentCellRef = GetCellReference(currentRow, colIndex);
+                        conditionalFormat.WhenFormulaIs($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                    }
                     else
                     {
-                        // 只有一个存在，结果肯定是FALSE
+                        // 理论上不应该到达这里，但为了安全起见
                         worksheet.Cell(currentRow, colIndex).Value = "FALSE";
                         worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.Yellow;
                         ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
@@ -359,7 +408,10 @@ public class ExcelExportService
         workbook.SaveAs(filePath);
     }
 
-    private static object? GetValueForColumn(RowComparisonResult result, string column, bool isBaseData)
+    /// <summary>
+    /// 获取Base数据（前）
+    /// </summary>
+    private static object? GetBaseValue(RowComparisonResult result, string column)
     {
         // 优先从主键获取
         if (result.PrimaryKeyValues.TryGetValue(column, out var pkValue))
@@ -367,31 +419,68 @@ public class ExcelExportService
             return pkValue;
         }
 
-        if (isBaseData)
+        // Base数据从OldValues获取
+        if (result.OldValues.TryGetValue(column, out var oldValue))
         {
-            // Base数据（前）：从OldValues获取
-            if (result.OldValues.TryGetValue(column, out var oldValue))
-            {
-                return oldValue;
-            }
-            // 新增场合：Base数据（前）应该是空白的
-            if (result.Status == ComparisonStatus.Added)
-            {
-                return null;
-            }
+            return oldValue;
         }
-        else
+
+        // 新增场合：Base数据（前）应该是空白的
+        if (result.Status == ComparisonStatus.Added)
         {
-            // 后数据：从NewValues获取
-            if (result.NewValues.TryGetValue(column, out var newValue))
-            {
-                return newValue;
-            }
-            // 删除场合：后数据应该是空白的
-            if (result.Status == ComparisonStatus.Deleted)
-            {
-                return null;
-            }
+            return null;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取Old数据（现行的后）
+    /// </summary>
+    private static object? GetOldValue(RowComparisonResult result, string column)
+    {
+        // 优先从主键获取
+        if (result.PrimaryKeyValues.TryGetValue(column, out var pkValue))
+        {
+            return pkValue;
+        }
+
+        // Old数据从NewValues获取（因为baseVsOldResults中NewValues是Old数据）
+        if (result.NewValues.TryGetValue(column, out var newValue))
+        {
+            return newValue;
+        }
+
+        // 删除场合：Old数据（后）应该是空白的
+        if (result.Status == ComparisonStatus.Deleted)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取New数据（新的后）
+    /// </summary>
+    private static object? GetNewValue(RowComparisonResult result, string column)
+    {
+        // 优先从主键获取
+        if (result.PrimaryKeyValues.TryGetValue(column, out var pkValue))
+        {
+            return pkValue;
+        }
+
+        // New数据从NewValues获取（因为baseVsNewResults中NewValues是New数据）
+        if (result.NewValues.TryGetValue(column, out var newValue))
+        {
+            return newValue;
+        }
+
+        // 删除场合：New数据（后）应该是空白的
+        if (result.Status == ComparisonStatus.Deleted)
+        {
+            return null;
         }
 
         return null;
