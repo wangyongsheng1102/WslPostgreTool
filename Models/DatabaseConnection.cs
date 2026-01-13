@@ -32,6 +32,19 @@ public partial class DatabaseConnection : ObservableObject
     {
         return $"Host={Host};Port={Port};Database={Database};Username={User};Password={Password}";
     }
+    
+    // 构造函数
+    public DatabaseConnection()
+    {
+        // 监听所有属性的变化
+        PropertyChanged += OnPropertyChanged;
+    }
+        
+    private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // 当属性变化时，可以在这里添加额外的逻辑
+        // 实时保存功能将在ViewModel中处理
+    }
 
 }
 

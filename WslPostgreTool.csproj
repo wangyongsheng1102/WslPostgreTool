@@ -9,6 +9,7 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationIcon>iconfinder-social-media-web-network-logo04-4584650_122303.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

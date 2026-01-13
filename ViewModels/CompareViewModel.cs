@@ -190,6 +190,8 @@ public partial class CompareViewModel : ViewModelBase
     [RelayCommand]
     private async Task CompareCsvFiles()
     {
+        LoadCsvFilePairs();
+        
         if (SelectedConnection == null)
         {
             _mainViewModel.AppendLog("[エラー] データベース接続を選択してください。", LogLevel.Error);

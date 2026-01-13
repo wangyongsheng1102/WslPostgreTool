@@ -342,108 +342,108 @@
                                                     VerticalScrollBarVisibility="Auto"
                                                     HorizontalScrollBarVisibility="Disabled"
                                                     HorizontalAlignment="Stretch">
-                                            <ItemsControl ItemsSource="{Binding DbConfigViewModel.Connections}" HorizontalAlignment="Stretch">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border Margin="0,0,0,2"
-                                                               Background="White"
-                                                               BorderBrush="#E9ECEF"
-                                                               BorderThickness="0,0,0,1"
-                                                               Padding="0,10"
-                                                               HorizontalAlignment="Stretch">
-                                                            <Grid ColumnDefinitions="2*,2*,1*,2*,2*,2*,2*,1.5*" HorizontalAlignment="Stretch">
-                                                                <!-- 設定名 -->
-                                                                <TextBox Grid.Column="0"
-                                                                        Text="{Binding ConfigurationName, Mode=TwoWay}"
-                                                                        Margin="6,0"
-                                                                        BorderThickness="1"
-                                                                        BorderBrush="#CED4DA"
-                                                                        Padding="10,8"
-                                                                        FontSize="13"
-                                                                        CornerRadius="4"
-                                                                        HorizontalAlignment="Stretch"/>
+                                           <ItemsControl ItemsSource="{Binding DbConfigViewModel.Connections}" HorizontalAlignment="Stretch">
+    <ItemsControl.ItemTemplate>
+        <DataTemplate>
+            <Border Margin="0,0,0,2"
+                   Background="White"
+                   BorderBrush="#E9ECEF"
+                   BorderThickness="0,0,0,1"
+                   Padding="0,10"
+                   HorizontalAlignment="Stretch">
+                <Grid ColumnDefinitions="2*,2*,1*,2*,2*,2*,2*,1.5*" HorizontalAlignment="Stretch">
+                    <!-- 設定名 -->
+                    <TextBox Grid.Column="0"
+                            Text="{Binding ConfigurationName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="6,0"
+                            BorderThickness="1"
+                            BorderBrush="#CED4DA"
+                            Padding="10,8"
+                            FontSize="13"
+                            CornerRadius="4"
+                            HorizontalAlignment="Stretch"/>
 
-                                                                <!-- ホスト -->
-                                                                <TextBox Grid.Column="1"
-                                                                        Text="{Binding Host, Mode=TwoWay}"
-                                                                        Margin="6,0"
-                                                                        BorderThickness="1"
-                                                                        BorderBrush="#CED4DA"
-                                                                        Padding="10,8"
-                                                                        FontSize="13"
-                                                                        CornerRadius="4"
-                                                                        HorizontalAlignment="Stretch"/>
+                    <!-- ホスト -->
+                    <TextBox Grid.Column="1"
+                            Text="{Binding Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="6,0"
+                            BorderThickness="1"
+                            BorderBrush="#CED4DA"
+                            Padding="10,8"
+                            FontSize="13"
+                            CornerRadius="4"
+                            HorizontalAlignment="Stretch"/>
 
-                                                                <!-- ポート -->
-                                                                <TextBox Grid.Column="2"
-                                                                        Text="{Binding Port, Mode=TwoWay}"
-                                                                        Margin="6,0"
-                                                                        BorderThickness="1"
-                                                                        BorderBrush="#CED4DA"
-                                                                        Padding="10,8"
-                                                                        FontSize="13"
-                                                                        CornerRadius="4"
-                                                                        HorizontalAlignment="Stretch"/>
+                    <!-- ポート -->
+                    <TextBox Grid.Column="2"
+                            Text="{Binding Port, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="6,0"
+                            BorderThickness="1"
+                            BorderBrush="#CED4DA"
+                            Padding="10,8"
+                            FontSize="13"
+                            CornerRadius="4"
+                            HorizontalAlignment="Stretch"/>
 
-                                                                <!-- データベース -->
-                                                                <TextBox Grid.Column="3"
-                                                                        Text="{Binding Database, Mode=TwoWay}"
-                                                                        Margin="6,0"
-                                                                        BorderThickness="1"
-                                                                        BorderBrush="#CED4DA"
-                                                                        Padding="10,8"
-                                                                        FontSize="13"
-                                                                        CornerRadius="4"
-                                                                        HorizontalAlignment="Stretch"/>
+                    <!-- データベース -->
+                    <TextBox Grid.Column="3"
+                            Text="{Binding Database, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="6,0"
+                            BorderThickness="1"
+                            BorderBrush="#CED4DA"
+                            Padding="10,8"
+                            FontSize="13"
+                            CornerRadius="4"
+                            HorizontalAlignment="Stretch"/>
 
-                                                                <!-- ユーザー -->
-                                                                <TextBox Grid.Column="4"
-                                                                        Text="{Binding User, Mode=TwoWay}"
-                                                                        Margin="6,0"
-                                                                        BorderThickness="1"
-                                                                        BorderBrush="#CED4DA"
-                                                                        Padding="10,8"
-                                                                        FontSize="13"
-                                                                        CornerRadius="4"
-                                                                        HorizontalAlignment="Stretch"/>
+                    <!-- ユーザー -->
+                    <TextBox Grid.Column="4"
+                            Text="{Binding User, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="6,0"
+                            BorderThickness="1"
+                            BorderBrush="#CED4DA"
+                            Padding="10,8"
+                            FontSize="13"
+                            CornerRadius="4"
+                            HorizontalAlignment="Stretch"/>
 
-                                                                <!-- パスワード -->
-                                                                <TextBox Grid.Column="5"
-                                                                        Text="{Binding Password, Mode=TwoWay}"
-                                                                        Margin="6,0"
-                                                                        BorderThickness="1"
-                                                                        BorderBrush="#CED4DA"
-                                                                        Padding="10,8"
-                                                                        FontSize="13"
-                                                                        CornerRadius="4"
-                                                                        HorizontalAlignment="Stretch"/>
+                    <!-- パスワード -->
+                    <TextBox Grid.Column="5"
+                            Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="6,0"
+                            BorderThickness="1"
+                            BorderBrush="#CED4DA"
+                            Padding="10,8"
+                            FontSize="13"
+                            CornerRadius="4"
+                            HorizontalAlignment="Stretch"/>
 
-                                                                <!-- WSLディストリビューション -->
-                                                                <ComboBox Grid.Column="6"
-                                                                         ItemsSource="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.WslDistributions}"
-                                                                         SelectedItem="{Binding WslDistro, Mode=TwoWay}"
-                                                                         Margin="6,0"
-                                                                         Padding="10,8"
-                                                                         FontSize="13"
-                                                                         CornerRadius="4"
-                                                                         HorizontalAlignment="Stretch"/>
+                    <!-- WSLディストリビューション -->
+                    <ComboBox Grid.Column="6"
+                             ItemsSource="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.WslDistributions}"
+                             SelectedItem="{Binding WslDistro, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="6,0"
+                             Padding="10,8"
+                             FontSize="13"
+                             CornerRadius="4"
+                             HorizontalAlignment="Stretch"/>
 
-                                                                <!-- 操作 -->
-                                                                <Button Grid.Column="7"
-                                                                       Content="🗑️ 削除"
-                                                                       Command="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.RemoveConnectionCommand}"
-                                                                       CommandParameter="{Binding}"
-                                                                       Classes="danger"
-                                                                       HorizontalAlignment="Stretch"
-                                                                       Padding="10,8"
-                                                                       FontSize="12"
-                                                                       Margin="6,0"
-                                                                       MinWidth="80"/>
-                                                            </Grid>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
+                    <!-- 操作 -->
+                    <Button Grid.Column="7"
+                           Content="🗑️ 削除"
+                           Command="{Binding $parent[ItemsControl].DataContext.DbConfigViewModel.RemoveConnectionCommand}"
+                           CommandParameter="{Binding}"
+                           Classes="danger"
+                           HorizontalAlignment="Stretch"
+                           Padding="10,8"
+                           FontSize="12"
+                           Margin="6,0"
+                           MinWidth="80"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </ItemsControl.ItemTemplate>
+</ItemsControl>
                                         </ScrollViewer>
                                     </Grid>
                                 </Grid>
@@ -560,7 +560,7 @@
                                 <Border Grid.Column="0" Classes="card" Margin="0,0,0,0">
                                     <Grid RowDefinitions="Auto,Auto,Auto">
                                         <TextBlock Grid.Row="0"
-                                                  Text="📤 エクスポート"
+                                                  Text="📤 エクスポート「導出」"
                                                   Classes="section-title"/>
                                         <Grid Grid.Row="1"
                                               Margin="0,0,0,0">
@@ -595,7 +595,7 @@
                                 <Border Grid.Column="1" Classes="card" Margin="4,0,0,0">
                                     <Grid RowDefinitions="Auto,Auto,Auto">
                                         <TextBlock Grid.Row="0"
-                                                  Text="📥 インポート"
+                                                  Text="📥 インポート「導入」"
                                                   Classes="section-title"/>
                                         <Grid Grid.Row="1"
                                               Margin="0,0,0,0">

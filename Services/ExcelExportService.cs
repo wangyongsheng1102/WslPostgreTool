@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using ClosedXML.Excel;
 using WslPostgreTool.Models;
@@ -34,9 +35,20 @@ public class ExcelExportService
         worksheet.Cell(1, 1).Style.Font.Bold = true;
         worksheet.Cell(1, 1).Style.Font.FontSize = 11;
         worksheet.Cell(1, 1).Style.Font.SetFontName("MS PGothic");
-        worksheet.Column("A").Width = 5;
 
-        int currentRow = 3;
+        
+        var builder = new DbConnectionStringBuilder
+        {
+            ConnectionString = connectionString
+        };
+
+        string database = builder.ContainsKey("database") ? builder["database"].ToString() : null;
+
+        Console.WriteLine(database);
+        worksheet.Cell(3, 1).Value = database ?? "データベース名取得失敗";
+        worksheet.Cell(3, 1).Style.Font.Bold = true;
+        
+        int currentRow = 5;
 
         // テーブルごとにグループ化
         var allTableNames = baseVsOldResults.Select(r => r.TableName)
@@ -87,7 +99,7 @@ public class ExcelExportService
             // ========== 現行システム ==========
             worksheet.Cell(currentRow, 2).Value = "現行システム";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
-            worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
+            // worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
             currentRow++;
 
             // 現行システム：增删改前 - 表名和列名
@@ -109,7 +121,7 @@ public class ExcelExportService
                 var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
                 worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
                 worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
                 colIndex++;
             }
@@ -121,7 +133,7 @@ public class ExcelExportService
             {
                 worksheet.Cell(currentRow, colIndex).Value = column;
                 worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
                 colIndex++;
             }
@@ -143,7 +155,7 @@ public class ExcelExportService
                 
                 string statusLabel = GetBeforeLabel(result.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"前"数据行的位置
                 oldBeforeRowMap[pkKey] = currentRow;
@@ -173,7 +185,7 @@ public class ExcelExportService
                 
                 // 旧系统没有这个主键，创建空行占位
                 worksheet.Cell(currentRow, 2).Value = "";
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"前"数据行的位置
                 oldBeforeRowMap[pkKey] = currentRow;
@@ -211,7 +223,7 @@ public class ExcelExportService
                 var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
                 worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
                 worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
                 colIndex++;
             }
@@ -223,7 +235,7 @@ public class ExcelExportService
             {
                 worksheet.Cell(currentRow, colIndex).Value = column;
                 worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
                 colIndex++;
             }
@@ -241,7 +253,7 @@ public class ExcelExportService
                 
                 string statusLabel = GetAfterLabel(result.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"后"数据行的位置
                 oldAfterRowMap[pkKey] = currentRow;
@@ -291,7 +303,7 @@ public class ExcelExportService
                 
                 // 旧系统没有这个主键，创建空行占位
                 worksheet.Cell(currentRow, 2).Value = "";
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"后"数据行的位置
                 oldAfterRowMap[pkKey] = currentRow;
@@ -313,7 +325,7 @@ public class ExcelExportService
             // ========== 新システム ==========
             worksheet.Cell(currentRow, 2).Value = "新システム";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
-            worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
+            // worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
             currentRow++;
 
             // 新システム：增删改前 - 表名和列名
@@ -335,7 +347,7 @@ public class ExcelExportService
                 var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
                 worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
                 worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
                 colIndex++;
             }
@@ -347,7 +359,7 @@ public class ExcelExportService
             {
                 worksheet.Cell(currentRow, colIndex).Value = column;
                 worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
                 colIndex++;
             }
@@ -372,7 +384,7 @@ public class ExcelExportService
                 
                 string statusLabel = hasNewResult ? GetBeforeLabel(newResult.Status) : "";
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"前"数据行的位置（即使新系统没有对应数据，也要记录位置）
                 newBeforeRowMap[pkKey] = currentRow;
@@ -406,7 +418,7 @@ public class ExcelExportService
                 
                 string statusLabel = GetBeforeLabel(newResult.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"前"数据行的位置
                 newBeforeRowMap[pkKey] = currentRow;
@@ -446,7 +458,7 @@ public class ExcelExportService
                 var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
                 worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
                 worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
                 colIndex++;
             }
@@ -458,7 +470,7 @@ public class ExcelExportService
             {
                 worksheet.Cell(currentRow, colIndex).Value = column;
                 worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
                 colIndex++;
             }
@@ -479,7 +491,7 @@ public class ExcelExportService
                 
                 string statusLabel = hasNewResult ? GetAfterLabel(newResult.Status) : "";
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"后"数据行的位置（即使新系统没有对应数据，也要记录位置）
                 newAfterRowMap[pkKey] = currentRow;
@@ -527,7 +539,7 @@ public class ExcelExportService
                 
                 string statusLabel = GetAfterLabel(newResult.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"后"数据行的位置
                 newAfterRowMap[pkKey] = currentRow;
@@ -566,7 +578,7 @@ public class ExcelExportService
             // 只比较新旧的后数据，不需要表名，只需要列名
             worksheet.Cell(currentRow, 2).Value = "比較結果";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
-            worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
+            // worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
             currentRow++;
 
             // 比较结果列头（只需要列名，不需要表名）
@@ -577,7 +589,7 @@ public class ExcelExportService
                 var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
                 worksheet.Cell(currentRow, colIndex).Value = columnComment;
                 worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
-                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
                 ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
                 colIndex++;
             }
@@ -617,7 +629,7 @@ public class ExcelExportService
                 }
 
                 worksheet.Cell(currentRow, 2).Value = BuildCompareLabel(oldStatus, newStatus);
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 colIndex = headerStartCol;
                 foreach (var column in columns)
@@ -682,7 +694,7 @@ public class ExcelExportService
                 }
 
                 worksheet.Cell(currentRow, 2).Value = BuildCompareLabel(oldStatus, newStatus);
-                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+                // worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 colIndex = headerStartCol;
                 foreach (var column in columns)
@@ -715,7 +727,8 @@ public class ExcelExportService
         worksheet.Style.Font.SetFontName("MS PGothic");
         
         // 设置第一列宽度为5，其余列自适应
-        worksheet.Column("A").Width = 5;
+        worksheet.Column("A").Width = 8.38;
+        worksheet.Column("B").Width = 8.38;
         if (worksheet.LastColumnUsed() != null)
         {
             worksheet.Columns(2, worksheet.LastColumnUsed().ColumnNumber()).AdjustToContents();
