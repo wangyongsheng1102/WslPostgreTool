@@ -392,6 +392,12 @@ public class ExcelExportService
             // 收集所有主键（确保新旧数据有几条，就比较几个）
             var allPkKeys = oldAfterRowMap.Keys.Union(newAfterRowMap.Keys).Distinct().ToList();
 
+            // 创建一个专门用于空值比较的单元格（在比较结果区域之前）
+            int emptyCellRow = currentRow - 1; // 使用比较结果列头行的上一行
+            int emptyCellCol = headerStartCol;
+            worksheet.Cell(emptyCellRow, emptyCellCol).Value = ""; // 确保这个单元格是空的
+            string emptyCellRef = GetCellReference(emptyCellRow, emptyCellCol);
+
             // 对每个主键进行比较（比较的都是"后"数据）
             foreach (var pkKey in allPkKeys)
             {
@@ -420,61 +426,19 @@ public class ExcelExportService
                 foreach (var column in columns)
                 {
                     // 比较两个"后"单元格（Old的"后"和New的"后"）
-                    if (hasOld && hasNew)
-                    {
-                        // 两个"后"单元格都存在，使用EXACT比较
-                        string oldCellRef = GetCellReference(oldRow, colIndex);
-                        string newCellRef = GetCellReference(newRow, colIndex);
-                        string formula = $"=EXACT({oldCellRef},{newCellRef})";
-                        
-                        var cell = worksheet.Cell(currentRow, colIndex);
-                        cell.SetFormulaA1(formula);
-                        ApplyCellBorder(cell);
+                    // 始终使用单元格引用，即使单元格是空的
+                    string oldCellRef = hasOld ? GetCellReference(oldRow, colIndex) : emptyCellRef;
+                    string newCellRef = hasNew ? GetCellReference(newRow, colIndex) : emptyCellRef;
+                    string formula = $"=EXACT({oldCellRef},{newCellRef})";
+                    
+                    var cell = worksheet.Cell(currentRow, colIndex);
+                    cell.SetFormulaA1(formula);
+                    ApplyCellBorder(cell);
 
-                        // 设置条件格式：FALSE时黄色背景
-                        var conditionalFormat = cell.AddConditionalFormat();
-                        var currentCellRef = GetCellReference(currentRow, colIndex);
-                        conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
-                    }
-                    else if (hasOld)
-                    {
-                        // 只有Old的"后"存在，New的"后"不存在（可能是删除或新增）
-                        // 比较Old的"后"和空值
-                        string oldCellRef = GetCellReference(oldRow, colIndex);
-                        string formula = $"=EXACT({oldCellRef},\"\")";
-                        
-                        var cell = worksheet.Cell(currentRow, colIndex);
-                        cell.SetFormulaA1(formula);
-                        ApplyCellBorder(cell);
-
-                        // 设置条件格式：FALSE时黄色背景
-                        var conditionalFormat = cell.AddConditionalFormat();
-                        var currentCellRef = GetCellReference(currentRow, colIndex);
-                        conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
-                    }
-                    else if (hasNew)
-                    {
-                        // 只有New的"后"存在，Old的"后"不存在（可能是删除或新增）
-                        // 比较空值和New的"后"
-                        string newCellRef = GetCellReference(newRow, colIndex);
-                        string formula = $"=EXACT(\"\",{newCellRef})";
-                        
-                        var cell = worksheet.Cell(currentRow, colIndex);
-                        cell.SetFormulaA1(formula);
-                        ApplyCellBorder(cell);
-
-                        // 设置条件格式：FALSE时黄色背景
-                        var conditionalFormat = cell.AddConditionalFormat();
-                        var currentCellRef = GetCellReference(currentRow, colIndex);
-                        conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
-                    }
-                    else
-                    {
-                        // 理论上不应该到达这里，但为了安全起见
-                        worksheet.Cell(currentRow, colIndex).Value = "FALSE";
-                        worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.Yellow;
-                        ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
-                    }
+                    // 设置条件格式：FALSE时黄色背景
+                    var conditionalFormat = cell.AddConditionalFormat();
+                    var currentCellRef = GetCellReference(currentRow, colIndex);
+                    conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
                     
                     colIndex++;
                 }
