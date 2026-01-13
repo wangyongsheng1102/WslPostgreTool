@@ -339,54 +339,45 @@ public class ExcelExportService
                 foreach (var column in columns)
                 {
                     // 比较两个"后"单元格（Old的"后"和New的"后"）
+                    var cell = worksheet.Cell(currentRow, colIndex);
+                    string formula;
+                    
                     if (hasOld && hasNew)
                     {
                         // 两个"后"单元格都存在，使用EXACT比较
                         string oldCellRef = GetCellReference(oldRow, colIndex);
                         string newCellRef = GetCellReference(newRow, colIndex);
-                        string formula = $"=EXACT({oldCellRef},{newCellRef})";
-                        
-                        var cell = worksheet.Cell(currentRow, colIndex);
-                        cell.FormulaA1 = formula;
-                        ApplyCellBorder(cell);
-
-                        // 设置条件格式：FALSE时黄色背景
-                        var conditionalFormat = cell.AddConditionalFormat();
-                        var currentCellRef = GetCellReference(currentRow, colIndex);
-                        conditionalFormat.WhenFormulaIs($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                        formula = $"EXACT({oldCellRef},{newCellRef})";
                     }
                     else if (hasOld)
                     {
                         // 只有Old的"后"存在，New的"后"不存在（可能是删除或新增）
                         // 比较Old的"后"和空值
                         string oldCellRef = GetCellReference(oldRow, colIndex);
-                        string formula = $"=EXACT({oldCellRef},\"\")";
-                        
-                        var cell = worksheet.Cell(currentRow, colIndex);
-                        cell.FormulaA1 = formula;
-                        ApplyCellBorder(cell);
-
-                        // 设置条件格式：FALSE时黄色背景
-                        var conditionalFormat = cell.AddConditionalFormat();
-                        var currentCellRef = GetCellReference(currentRow, colIndex);
-                        conditionalFormat.WhenFormulaIs($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                        formula = $"EXACT({oldCellRef},\"\")";
                     }
                     else if (hasNew)
                     {
                         // 只有New的"后"存在，Old的"后"不存在（可能是删除或新增）
                         // 比较空值和New的"后"
                         string newCellRef = GetCellReference(newRow, colIndex);
-                        string formula = $"=EXACT(\"\",{newCellRef})";
-                        
-                        var cell = worksheet.Cell(currentRow, colIndex);
-                        cell.FormulaA1 = formula;
-                        ApplyCellBorder(cell);
-
-                        // 设置条件格式：FALSE时黄色背景
-                        var conditionalFormat = cell.AddConditionalFormat();
-                        var currentCellRef = GetCellReference(currentRow, colIndex);
-                        conditionalFormat.WhenFormulaIs($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                        formula = $"EXACT(\"\",{newCellRef})";
                     }
+                    else
+                    {
+                        // 理论上不应该到达这里，但为了安全起见
+                        formula = "FALSE";
+                    }
+                    
+                    // 设置公式（ClosedXML会自动添加等号）
+                    cell.FormulaA1 = formula;
+                    ApplyCellBorder(cell);
+
+                    // 设置条件格式：FALSE时黄色背景
+                    // 使用WhenFormula方法，当公式结果为FALSE时应用格式
+                    var currentCellRef = GetCellReference(currentRow, colIndex);
+                    var conditionalFormat = cell.AddConditionalFormat();
+                    conditionalFormat.WhenFormula($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
                     else
                     {
                         // 理论上不应该到达这里，但为了安全起见
