@@ -211,9 +211,8 @@ public class ExcelExportService
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    // Old数据：从NewValues获取
-                    // 删除场合：后应该是空行
-                    object? value = result.Status == ComparisonStatus.Deleted ? null : GetOldValue(result, column);
+                    // Old数据：从NewValues获取（删除场合NewValues为空，会自然返回null）
+                    object? value = GetOldValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
@@ -351,9 +350,8 @@ public class ExcelExportService
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    // New数据：从NewValues获取
-                    // 删除场合：后应该是空行
-                    object? value = result.Status == ComparisonStatus.Deleted ? null : GetNewValue(result, column);
+                    // New数据：从NewValues获取（删除场合NewValues为空，会自然返回null）
+                    object? value = GetNewValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
