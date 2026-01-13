@@ -34,7 +34,7 @@ public class ExcelExportService
         worksheet.Cell(1, 1).Style.Font.Bold = true;
         worksheet.Cell(1, 1).Style.Font.FontSize = 11;
         worksheet.Cell(1, 1).Style.Font.SetFontName("MS PGothic");
-        worksheet.Column("A").Width = 3.5;
+        worksheet.Column("A").Width = 5;
 
         int currentRow = 3;
 
@@ -256,8 +256,8 @@ public class ExcelExportService
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
-                    // Old数据：从NewValues获取（删除场合NewValues为空，会自然返回null）
-                    object? value = GetOldValue(result, column);
+                    // 删除场合：整行都应该是空的
+                    object? value = result.Status == ComparisonStatus.Deleted ? null : GetOldValue(result, column);
                     var cell = worksheet.Cell(currentRow, dataCol);
                     cell.Value = value?.ToString() ?? "";
                     ApplyCellBorder(cell);
@@ -488,7 +488,12 @@ public class ExcelExportService
                 foreach (var column in columns)
                 {
                     // 如果新系统有对应的数据，使用实际数据；否则为空（占位）
-                    object? value = hasNewResult ? GetNewValue(newResult, column) : null;
+                    // 删除场合：整行都应该是空的
+                    object? value = null;
+                    if (hasNewResult)
+                    {
+                        value = newResult.Status == ComparisonStatus.Deleted ? null : GetNewValue(newResult, column);
+                    }
                     var cell = worksheet.Cell(currentRow, dataCol);
                     cell.Value = value?.ToString() ?? "";
                     ApplyCellBorder(cell);
@@ -531,7 +536,8 @@ public class ExcelExportService
                 foreach (var column in columns)
                 {
                     // New数据：从NewValues获取
-                    object? value = GetNewValue(newResult, column);
+                    // 删除场合：整行都应该是空的
+                    object? value = newResult.Status == ComparisonStatus.Deleted ? null : GetNewValue(newResult, column);
                     var cell = worksheet.Cell(currentRow, dataCol);
                     cell.Value = value?.ToString() ?? "";
                     ApplyCellBorder(cell);
@@ -619,18 +625,28 @@ public class ExcelExportService
                     // 比较两个"后"单元格（Old的"后"和New的"后"）
                     // 由于已经按照旧系统顺序创建了新系统的数据行，所以hasOld和hasNew应该都是true
                     // 即使新系统没有对应数据，也会有空行占位，所以newRow应该存在
-                    string oldCellRef = GetCellReference(oldRow, colIndex);
-                    string newCellRef = hasNew ? GetCellReference(newRow, colIndex) : GetCellReference(oldRow, colIndex); // 如果新系统没有，使用旧系统的位置（但应该是空行）
-                    string formula = $"=EXACT({oldCellRef},{newCellRef})";
-                    
-                    var cell = worksheet.Cell(currentRow, colIndex);
-                    cell.SetFormulaA1(formula);
-                    ApplyCellBorder(cell);
+                    if (!hasOld || !hasNew)
+                    {
+                        // 理论上不应该到达这里，但为了安全起见
+                        worksheet.Cell(currentRow, colIndex).Value = "FALSE";
+                        worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.Yellow;
+                        ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
+                    }
+                    else
+                    {
+                        string oldCellRef = GetCellReference(oldRow, colIndex);
+                        string newCellRef = GetCellReference(newRow, colIndex);
+                        string formula = $"=EXACT({oldCellRef},{newCellRef})";
+                        
+                        var cell = worksheet.Cell(currentRow, colIndex);
+                        cell.SetFormulaA1(formula);
+                        ApplyCellBorder(cell);
 
-                    // 设置条件格式：FALSE时黄色背景
-                    var conditionalFormat = cell.AddConditionalFormat();
-                    var currentCellRef = GetCellReference(currentRow, colIndex);
-                    conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                        // 设置条件格式：FALSE时黄色背景
+                        var conditionalFormat = cell.AddConditionalFormat();
+                        var currentCellRef = GetCellReference(currentRow, colIndex);
+                        conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
+                    }
                     
                     colIndex++;
                 }
@@ -674,16 +690,16 @@ public class ExcelExportService
                     // 比较两个"后"单元格
                     // 这种情况下，oldRow应该不存在，newRow存在
                     string oldCellRef = hasOld ? GetCellReference(oldRow, colIndex) : GetCellReference(newRow, colIndex); // 如果旧系统没有，使用新系统的位置（但应该是空行）
-                    string newCellRef = GetCellReference(newRow, colIndex);
+                        string newCellRef = GetCellReference(newRow, colIndex);
                     string formula = $"=EXACT({oldCellRef},{newCellRef})";
-                    
-                    var cell = worksheet.Cell(currentRow, colIndex);
+                        
+                        var cell = worksheet.Cell(currentRow, colIndex);
                     cell.SetFormulaA1(formula);
-                    ApplyCellBorder(cell);
+                        ApplyCellBorder(cell);
 
-                    // 设置条件格式：FALSE时黄色背景
-                    var conditionalFormat = cell.AddConditionalFormat();
-                    var currentCellRef = GetCellReference(currentRow, colIndex);
+                        // 设置条件格式：FALSE时黄色背景
+                        var conditionalFormat = cell.AddConditionalFormat();
+                        var currentCellRef = GetCellReference(currentRow, colIndex);
                     conditionalFormat.WhenIsTrue($"={currentCellRef}=FALSE").Fill.SetBackgroundColor(XLColor.Yellow);
                     
                     colIndex++;
@@ -695,7 +711,15 @@ public class ExcelExportService
             currentRow += 2; // 表之间的空行
         }
 
-        worksheet.Columns().AdjustToContents();
+        // 设置整个工作表的默认字体为MS PGothic
+        worksheet.Style.Font.SetFontName("MS PGothic");
+        
+        // 设置第一列宽度为5，其余列自适应
+        worksheet.Column("A").Width = 5;
+        if (worksheet.LastColumnUsed() != null)
+        {
+            worksheet.Columns(2, worksheet.LastColumnUsed().ColumnNumber()).AdjustToContents();
+        }
         workbook.SaveAs(filePath);
     }
 
@@ -790,6 +814,13 @@ public class ExcelExportService
         cell.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
         cell.Style.Border.LeftBorder = XLBorderStyleValues.Thin;
         cell.Style.Border.RightBorder = XLBorderStyleValues.Thin;
+        // 设置字体为MS PGothic
+        cell.Style.Font.SetFontName("MS PGothic");
+    }
+
+    private static void SetCellFont(IXLCell cell)
+    {
+        cell.Style.Font.SetFontName("MS PGothic");
     }
 
     private static string GetCellReference(int row, int column)
