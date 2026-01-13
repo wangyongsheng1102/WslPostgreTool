@@ -84,7 +84,13 @@ public class ExcelExportService
             var columns = allColumns.OrderBy(c => c).ToList();
             int headerStartCol = 3;
 
-            // 表头
+            // ========== 現行システム ==========
+            worksheet.Cell(currentRow, 2).Value = "現行システム";
+            worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+            worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
+            currentRow++;
+
+            // 現行システム：增删改前 - 表名和列名
             worksheet.Cell(currentRow, headerStartCol).Value = tableComment;
             worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
             currentRow++;
@@ -107,7 +113,6 @@ public class ExcelExportService
                 ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
                 colIndex++;
             }
-
             currentRow++;
 
             // 列头：列英文名（第二行）
@@ -120,132 +125,253 @@ public class ExcelExportService
                 ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
                 colIndex++;
             }
-
             currentRow++;
 
-            // 現行システム
-            // 前 = Base数据 (OldValues)
-            // 后 = Old数据 (NewValues)
-            worksheet.Cell(currentRow, 2).Value = "現行システム";
-            worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
-            worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
-            currentRow++;
+            // 存储现行系统的"前"和"后"数据行位置（用于后续比较）
+            var oldBeforeRowMap = new Dictionary<string, int>(); // 主键 -> "前"数据行
+            var oldAfterRowMap = new Dictionary<string, int>(); // 主键 -> "后"数据行
 
-            // 存储现行系统的"后"数据行位置（用于后续比较）
-            var oldDataRowMap = new Dictionary<string, int>(); // 主键 -> "后"数据行
-
-            // 现行系统的数据
+            // 現行システム：增删改前 - 前数据
             foreach (var result in oldResults)
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
-                // 现行系统：前 = Base数据 (OldValues)
-                string statusLabel = $"現行{GetBeforeLabel(result.Status)}";
+                string statusLabel = GetBeforeLabel(result.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                // 存储"前"数据行的位置
+                oldBeforeRowMap[pkKey] = currentRow;
 
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
                     // Base数据：从OldValues获取
-                    object? value = GetBaseValue(result, column);
+                    // 新增场合：前应该是空行
+                    object? value = result.Status == ComparisonStatus.Added ? null : GetBaseValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
                 }
 
                 currentRow++;
+            }
 
-                // 后 = Old数据 (NewValues)
-                string statusLabel2 = $"現行{GetAfterLabel(result.Status)}";
-                worksheet.Cell(currentRow, 2).Value = statusLabel2;
+            currentRow++; // 空行
+
+            // 現行システム：增删改后 - 表名和列名
+            worksheet.Cell(currentRow, headerStartCol).Value = tableComment;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
+            currentRow++;
+            worksheet.Cell(currentRow, headerStartCol).Value = tableName;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
+            currentRow++;
+
+            // 列头：列日文名（第一行）
+            colHeaderRow1 = currentRow;
+            worksheet.Cell(colHeaderRow1, 1).Value = "";
+            worksheet.Cell(colHeaderRow1, 2).Value = "";
+            
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
+                worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
+                colIndex++;
+            }
+            currentRow++;
+
+            // 列头：列英文名（第二行）
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                worksheet.Cell(currentRow, colIndex).Value = column;
+                worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
+                colIndex++;
+            }
+            currentRow++;
+
+            // 現行システム：增删改后 - 后数据
+            foreach (var result in oldResults)
+            {
+                string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
+                string statusLabel = GetAfterLabel(result.Status);
+                worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"后"数据行的位置
-                oldDataRowMap[pkKey] = currentRow;
+                oldAfterRowMap[pkKey] = currentRow;
 
-                dataCol = headerStartCol;
+                int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
                     // Old数据：从NewValues获取
-                    object? value = GetOldValue(result, column);
+                    // 删除场合：后应该是空行
+                    object? value = result.Status == ComparisonStatus.Deleted ? null : GetOldValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
                 }
 
                 currentRow++;
-                currentRow++; // 空行
             }
 
             currentRow += 2; // 系统之间的空行
 
-            // 新システム
-            // 前 = Base数据 (OldValues)
-            // 后 = New数据 (NewValues)
+            // ========== 新システム ==========
             worksheet.Cell(currentRow, 2).Value = "新システム";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
             worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
             currentRow++;
 
-            // 存储新系统的"后"数据行位置
-            var newDataRowMap = new Dictionary<string, int>();
+            // 新システム：增删改前 - 表名和列名
+            worksheet.Cell(currentRow, headerStartCol).Value = tableComment;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
+            currentRow++;
+            worksheet.Cell(currentRow, headerStartCol).Value = tableName;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
+            currentRow++;
 
-            // 新系统的数据
+            // 列头：列日文名（第一行）
+            colHeaderRow1 = currentRow;
+            worksheet.Cell(colHeaderRow1, 1).Value = "";
+            worksheet.Cell(colHeaderRow1, 2).Value = "";
+            
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
+                worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
+                colIndex++;
+            }
+            currentRow++;
+
+            // 列头：列英文名（第二行）
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                worksheet.Cell(currentRow, colIndex).Value = column;
+                worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
+                colIndex++;
+            }
+            currentRow++;
+
+            // 存储新系统的"前"和"后"数据行位置
+            var newBeforeRowMap = new Dictionary<string, int>(); // 主键 -> "前"数据行
+            var newAfterRowMap = new Dictionary<string, int>(); // 主键 -> "后"数据行
+
+            // 新システム：增删改前 - 前数据
             foreach (var result in newResults)
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
-                // 新系统：前 = Base数据 (OldValues)
-                string statusLabel = $"新{GetBeforeLabel(result.Status)}";
+                string statusLabel = GetBeforeLabel(result.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                // 存储"前"数据行的位置
+                newBeforeRowMap[pkKey] = currentRow;
 
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
                     // Base数据：从OldValues获取
-                    object? value = GetBaseValue(result, column);
+                    // 新增场合：前应该是空行
+                    object? value = result.Status == ComparisonStatus.Added ? null : GetBaseValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
                 }
 
                 currentRow++;
+            }
 
-                // 后 = New数据 (NewValues)
-                string statusLabel2 = $"新{GetAfterLabel(result.Status)}";
-                worksheet.Cell(currentRow, 2).Value = statusLabel2;
+            currentRow++; // 空行
+
+            // 新システム：增删改后 - 表名和列名
+            worksheet.Cell(currentRow, headerStartCol).Value = tableComment;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
+            currentRow++;
+            worksheet.Cell(currentRow, headerStartCol).Value = tableName;
+            worksheet.Cell(currentRow, headerStartCol).Style.Font.Bold = true;
+            currentRow++;
+
+            // 列头：列日文名（第一行）
+            colHeaderRow1 = currentRow;
+            worksheet.Cell(colHeaderRow1, 1).Value = "";
+            worksheet.Cell(colHeaderRow1, 2).Value = "";
+            
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                var columnComment = columnComments.TryGetValue(column, out var comment) ? comment : column;
+                worksheet.Cell(colHeaderRow1, colIndex).Value = columnComment;
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(colHeaderRow1, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(colHeaderRow1, colIndex));
+                colIndex++;
+            }
+            currentRow++;
+
+            // 列头：列英文名（第二行）
+            colIndex = headerStartCol;
+            foreach (var column in columns)
+            {
+                worksheet.Cell(currentRow, colIndex).Value = column;
+                worksheet.Cell(currentRow, colIndex).Style.Fill.BackgroundColor = XLColor.FromHtml("#92D050");
+                worksheet.Cell(currentRow, colIndex).Style.Font.Bold = true;
+                ApplyCellBorder(worksheet.Cell(currentRow, colIndex));
+                colIndex++;
+            }
+            currentRow++;
+
+            // 新システム：增删改后 - 后数据
+            foreach (var result in newResults)
+            {
+                string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
+                string statusLabel = GetAfterLabel(result.Status);
+                worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
                 // 存储"后"数据行的位置
-                newDataRowMap[pkKey] = currentRow;
+                newAfterRowMap[pkKey] = currentRow;
 
-                dataCol = headerStartCol;
+                int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
                     // New数据：从NewValues获取
-                    object? value = GetNewValue(result, column);
+                    // 删除场合：后应该是空行
+                    object? value = result.Status == ComparisonStatus.Deleted ? null : GetNewValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
                 }
 
                 currentRow++;
-                currentRow++; // 空行
             }
 
             currentRow += 2;
 
-            // 比較結果
-            // 比较：现行的后(Old) vs 新的后(New)
-            // 确保新旧数据有几条，就比较几个
+            // ========== 比較結果 ==========
+            // 只比较新旧的后数据，不需要表名，只需要列名
             worksheet.Cell(currentRow, 2).Value = "比較結果";
             worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
             worksheet.Cell(currentRow, 2).Style.Font.FontSize = 12;
             currentRow++;
 
-            // 比较结果列头
+            // 比较结果列头（只需要列名，不需要表名）
             worksheet.Cell(currentRow, 2).Value = "";
             colIndex = headerStartCol;
             foreach (var column in columns)
@@ -266,15 +392,15 @@ public class ExcelExportService
                 string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
 
             // 收集所有主键（确保新旧数据有几条，就比较几个）
-            var allPkKeys = oldDataRowMap.Keys.Union(newDataRowMap.Keys).Distinct().ToList();
+            var allPkKeys = oldAfterRowMap.Keys.Union(newAfterRowMap.Keys).Distinct().ToList();
 
             // 对每个主键进行比较（比较的都是"后"数据）
             foreach (var pkKey in allPkKeys)
             {
-                bool hasOld = oldDataRowMap.TryGetValue(pkKey, out int oldRow);
-                bool hasNew = newDataRowMap.TryGetValue(pkKey, out int newRow);
+                bool hasOld = oldAfterRowMap.TryGetValue(pkKey, out int oldRow);
+                bool hasNew = newAfterRowMap.TryGetValue(pkKey, out int newRow);
 
-                // 比较标签：强调现行/新系统各自的“后”状态
+                // 比较标签：强调现行/新系统各自的"后"状态
                 RowComparisonResult? oldResult = null;
                 RowComparisonResult? newResult = null;
                 ComparisonStatus? oldStatus = null;
@@ -304,7 +430,6 @@ public class ExcelExportService
                         string formula = $"=EXACT({oldCellRef},{newCellRef})";
                         
                         var cell = worksheet.Cell(currentRow, colIndex);
-                        // ClosedXML 0.105+ 使用 SetFormulaA1 设定公式
                         cell.SetFormulaA1(formula);
                         ApplyCellBorder(cell);
 
@@ -383,12 +508,6 @@ public class ExcelExportService
             return oldValue;
         }
 
-        // 新增场合：Base数据（前）应该是空白的
-        if (result.Status == ComparisonStatus.Added)
-        {
-            return null;
-        }
-
         return null;
     }
 
@@ -409,12 +528,6 @@ public class ExcelExportService
             return newValue;
         }
 
-        // 删除场合：Old数据（后）应该是空白的
-        if (result.Status == ComparisonStatus.Deleted)
-        {
-            return null;
-        }
-
         return null;
     }
 
@@ -433,12 +546,6 @@ public class ExcelExportService
         if (result.NewValues.TryGetValue(column, out var newValue))
         {
             return newValue;
-        }
-
-        // 删除场合：New数据（后）应该是空白的
-        if (result.Status == ComparisonStatus.Deleted)
-        {
-            return null;
         }
 
         return null;
