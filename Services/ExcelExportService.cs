@@ -132,6 +132,11 @@ public class ExcelExportService
             var oldAfterRowMap = new Dictionary<string, int>(); // 主键 -> "后"数据行
 
             // 現行システム：增删改前 - 前数据
+            // 创建新系统结果的主键映射（用于检查新系统是否有但旧系统没有的数据）
+            var newResultMapForOldBefore = newResults.ToDictionary(r => 
+                string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
+            
+            // 先处理旧系统有的数据
             foreach (var result in oldResults)
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
@@ -150,6 +155,34 @@ public class ExcelExportService
                     // 新增场合：前应该是空行
                     object? value = result.Status == ComparisonStatus.Added ? null : GetBaseValue(result, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
+                    dataCol++;
+                }
+
+                currentRow++;
+            }
+            
+            // 处理新系统有但旧系统没有的数据（追加到后面，创建空行占位）
+            foreach (var newResult in newResults)
+            {
+                string pkKey = string.Join("|", newResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
+                // 如果这个主键已经在oldResults中处理过，跳过
+                if (oldBeforeRowMap.ContainsKey(pkKey))
+                    continue;
+                
+                // 旧系统没有这个主键，创建空行占位
+                worksheet.Cell(currentRow, 2).Value = "";
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                // 存储"前"数据行的位置
+                oldBeforeRowMap[pkKey] = currentRow;
+
+                int dataCol = headerStartCol;
+                foreach (var column in columns)
+                {
+                    // 旧系统没有这个主键，所以都是空
+                    worksheet.Cell(currentRow, dataCol).Value = "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
                 }
@@ -197,6 +230,11 @@ public class ExcelExportService
             currentRow++;
 
             // 現行システム：增删改后 - 后数据
+            // 创建新系统结果的主键映射（用于检查新系统是否有但旧系统没有的数据）
+            var newResultMapForOldAfter = newResults.ToDictionary(r => 
+                string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
+            
+            // 先处理旧系统有的数据
             foreach (var result in oldResults)
             {
                 string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
@@ -208,12 +246,61 @@ public class ExcelExportService
                 // 存储"后"数据行的位置
                 oldAfterRowMap[pkKey] = currentRow;
 
+                // 获取"前"数据的值（用于更新场合比较）
+                object? beforeValue = null;
+                if (result.Status == ComparisonStatus.Updated && oldBeforeRowMap.TryGetValue(pkKey, out int beforeRow))
+                {
+                    // 不需要在这里获取，后面在循环中获取
+                }
+
                 int dataCol = headerStartCol;
                 foreach (var column in columns)
                 {
                     // Old数据：从NewValues获取（删除场合NewValues为空，会自然返回null）
                     object? value = GetOldValue(result, column);
-                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    var cell = worksheet.Cell(currentRow, dataCol);
+                    cell.Value = value?.ToString() ?? "";
+                    ApplyCellBorder(cell);
+                    
+                    // 更新场合：如果前后值不同，加上黄色背景
+                    if (result.Status == ComparisonStatus.Updated && oldBeforeRowMap.TryGetValue(pkKey, out int beforeRowForCompare))
+                    {
+                        object? beforeVal = GetBaseValue(result, column);
+                        string beforeStr = beforeVal?.ToString() ?? "";
+                        string afterStr = value?.ToString() ?? "";
+                        if (beforeStr != afterStr)
+                        {
+                            cell.Style.Fill.BackgroundColor = XLColor.Yellow;
+                        }
+                    }
+                    
+                    dataCol++;
+                }
+
+                currentRow++;
+            }
+            
+            // 处理新系统有但旧系统没有的数据（追加到后面，创建空行占位）
+            foreach (var newResult in newResults)
+            {
+                string pkKey = string.Join("|", newResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
+                // 如果这个主键已经在oldResults中处理过，跳过
+                if (oldAfterRowMap.ContainsKey(pkKey))
+                    continue;
+                
+                // 旧系统没有这个主键，创建空行占位
+                worksheet.Cell(currentRow, 2).Value = "";
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                // 存储"后"数据行的位置
+                oldAfterRowMap[pkKey] = currentRow;
+
+                int dataCol = headerStartCol;
+                foreach (var column in columns)
+                {
+                    // 旧系统没有这个主键，所以都是空
+                    worksheet.Cell(currentRow, dataCol).Value = "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
                 }
@@ -271,11 +358,53 @@ public class ExcelExportService
             var newAfterRowMap = new Dictionary<string, int>(); // 主键 -> "后"数据行
 
             // 新システム：增删改前 - 前数据
-            foreach (var result in newResults)
+            // 创建新系统结果的主键映射
+            var newResultMapForBefore = newResults.ToDictionary(r => 
+                string.Join("|", r.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")));
+            
+            // 按照旧系统的顺序创建新系统的数据行，确保条数对应
+            foreach (var oldResult in oldResults)
             {
-                string pkKey = string.Join("|", result.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                string pkKey = string.Join("|", oldResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 
-                string statusLabel = GetBeforeLabel(result.Status);
+                // 检查新系统是否有对应的主键
+                bool hasNewResult = newResultMapForBefore.TryGetValue(pkKey, out var newResult);
+                
+                string statusLabel = hasNewResult ? GetBeforeLabel(newResult.Status) : "";
+                worksheet.Cell(currentRow, 2).Value = statusLabel;
+                worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
+
+                // 存储"前"数据行的位置（即使新系统没有对应数据，也要记录位置）
+                newBeforeRowMap[pkKey] = currentRow;
+
+                int dataCol = headerStartCol;
+                foreach (var column in columns)
+                {
+                    // 如果新系统有对应的数据，使用实际数据；否则为空（占位）
+                    // 新增场合：前应该是空行
+                    object? value = null;
+                    if (hasNewResult)
+                    {
+                        value = newResult.Status == ComparisonStatus.Added ? null : GetBaseValue(newResult, column);
+                    }
+                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
+                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
+                    dataCol++;
+                }
+
+                currentRow++;
+            }
+            
+            // 处理新系统有但旧系统没有的数据（追加到后面）
+            foreach (var newResult in newResults)
+            {
+                string pkKey = string.Join("|", newResult.PrimaryKeyValues.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
+                
+                // 如果这个主键已经在oldResults中处理过，跳过
+                if (newBeforeRowMap.ContainsKey(pkKey))
+                    continue;
+                
+                string statusLabel = GetBeforeLabel(newResult.Status);
                 worksheet.Cell(currentRow, 2).Value = statusLabel;
                 worksheet.Cell(currentRow, 2).Style.Font.Bold = true;
 
@@ -287,7 +416,7 @@ public class ExcelExportService
                 {
                     // Base数据：从OldValues获取
                     // 新增场合：前应该是空行
-                    object? value = result.Status == ComparisonStatus.Added ? null : GetBaseValue(result, column);
+                    object? value = newResult.Status == ComparisonStatus.Added ? null : GetBaseValue(newResult, column);
                     worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
                     ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
                     dataCol++;
@@ -360,8 +489,22 @@ public class ExcelExportService
                 {
                     // 如果新系统有对应的数据，使用实际数据；否则为空（占位）
                     object? value = hasNewResult ? GetNewValue(newResult, column) : null;
-                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
-                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
+                    var cell = worksheet.Cell(currentRow, dataCol);
+                    cell.Value = value?.ToString() ?? "";
+                    ApplyCellBorder(cell);
+                    
+                    // 更新场合：如果前后值不同，加上黄色背景
+                    if (hasNewResult && newResult.Status == ComparisonStatus.Updated && newBeforeRowMap.TryGetValue(pkKey, out int beforeRowForCompare))
+                    {
+                        object? beforeVal = GetBaseValue(newResult, column);
+                        string beforeStr = beforeVal?.ToString() ?? "";
+                        string afterStr = value?.ToString() ?? "";
+                        if (beforeStr != afterStr)
+                        {
+                            cell.Style.Fill.BackgroundColor = XLColor.Yellow;
+                        }
+                    }
+                    
                     dataCol++;
                 }
 
@@ -389,8 +532,22 @@ public class ExcelExportService
                 {
                     // New数据：从NewValues获取
                     object? value = GetNewValue(newResult, column);
-                    worksheet.Cell(currentRow, dataCol).Value = value?.ToString() ?? "";
-                    ApplyCellBorder(worksheet.Cell(currentRow, dataCol));
+                    var cell = worksheet.Cell(currentRow, dataCol);
+                    cell.Value = value?.ToString() ?? "";
+                    ApplyCellBorder(cell);
+                    
+                    // 更新场合：如果前后值不同，加上黄色背景
+                    if (newResult.Status == ComparisonStatus.Updated && newBeforeRowMap.TryGetValue(pkKey, out int beforeRowForCompare))
+                    {
+                        object? beforeVal = GetBaseValue(newResult, column);
+                        string beforeStr = beforeVal?.ToString() ?? "";
+                        string afterStr = value?.ToString() ?? "";
+                        if (beforeStr != afterStr)
+                        {
+                            cell.Style.Fill.BackgroundColor = XLColor.Yellow;
+                        }
+                    }
+                    
                     dataCol++;
                 }
 
