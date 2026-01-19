@@ -2,6 +2,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -155,18 +156,17 @@ public class DatabaseService
         await conn.OpenAsync();
 
         const string sql = @"
-            SELECT 
-                a.attname as column_name,
-                COALESCE(d.description, '') as comment
-            FROM pg_attribute a
-            JOIN pg_class c ON c.oid = a.attrelid
-            JOIN pg_namespace n ON n.oid = c.relnamespace
-            LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = a.attnum
-            WHERE n.nspname = @schema
-              AND c.relname = @table
-              AND a.attnum > 0
-              AND NOT a.attisdropped
-            ORDER BY a.attnum";
+        SELECT 
+            c.column_name,
+            COALESCE(pgd.description, '') as comment
+        FROM information_schema.columns c
+        JOIN pg_class pc ON pc.relname = c.table_name
+        JOIN pg_namespace pn ON pn.oid = pc.relnamespace AND pn.nspname = c.table_schema
+        LEFT JOIN pg_description pgd ON pgd.objoid = pc.oid 
+            AND pgd.objsubid = c.ordinal_position
+        WHERE c.table_schema = @schema
+            AND c.table_name = @table
+        ORDER BY c.ordinal_position";
 
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("schema", schemaName);
@@ -184,7 +184,7 @@ public class DatabaseService
     }
 
     /// <summary>
-    /// CSV エクスポート（COPY コマンド使用）
+    /// CSV エクスポート（COPY コマンド使用）- Pythonと同じ動作を保証
     /// </summary>
     public async Task ExportTableToCsvAsync(string connectionString, string schemaName, string tableName, string csvPath, IProgress<string>? progress = null)
     {
@@ -193,32 +193,39 @@ public class DatabaseService
 
         progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' をエクスポートしています...");
 
-        // 全列を取得
-        var allColumns = await GetAllColumnsAsync(conn, schemaName, tableName);
-        
-        // SELECT クエリでデータを取得
-        var selectSql = $"SELECT {string.Join(", ", allColumns.Select(c => $"\"{c}\""))} FROM {schemaName}.{tableName}";
-        await using var cmd = new NpgsqlCommand(selectSql, conn);
-        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
-        await using var fileWriter = new StreamWriter(csvPath, false, Encoding.UTF8);
-
-        // ヘッダー行を書き込み
-        await fileWriter.WriteLineAsync(string.Join(",", allColumns.Select(c => EscapeCsvValue(c))));
-
-        // データ行を書き込み
-        while (await reader.ReadAsync())
+        try
         {
-            var rowValues = new List<string>();
-            for (int i = 0; i < reader.FieldCount; i++)
+            // Pythonの psycopg2 と同じパラメータ設定
+            var copyCommand = $"COPY {schemaName}.{tableName} " +
+                              $"TO STDOUT WITH (" +
+                              $"FORMAT CSV, " +
+                              $"HEADER true, " +
+                              $"QUOTE '\"', " +           // クォート文字をダブルクォート
+                              $"FORCE_QUOTE *, " +        // すべての列を強制的にクォート
+                              $"ESCAPE '\"', " +          // エスケープ文字もダブルクォート
+                              $"ENCODING 'UTF8'" +
+                              $")";
+        
+            // テキストモードで出力（Pythonの TextIO と同じ）
+            await using var fileStream = File.Create(csvPath);
+            await using var streamWriter = new StreamWriter(fileStream, Encoding.UTF8);
+        
+            await using (var textWriter = conn.BeginTextExport(copyCommand))
             {
-                var value = reader.IsDBNull(i) ? "" : reader.GetValue(i)?.ToString() ?? "";
-                rowValues.Add(EscapeCsvValue(value));
+                string? line;
+                while ((line = await textWriter.ReadLineAsync()) != null)
+                {
+                    await streamWriter.WriteLineAsync(line);
+                }
             }
-            await fileWriter.WriteLineAsync(string.Join(",", rowValues));
-        }
 
-        await fileWriter.FlushAsync();
-        progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のエクスポートが完了しました。");
+            progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のエクスポートが完了しました。");
+        }
+        catch (Exception ex)
+        {
+            progress?.Report($"[エラー] エクスポート中にエラーが発生しました: {ex.Message}");
+            throw;
+        }
     }
 
     private async Task<List<string>> GetAllColumnsAsync(NpgsqlConnection conn, string schemaName, string tableName)
@@ -277,7 +284,7 @@ public class DatabaseService
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync();
 
-            // 1. テーブル存在チェック
+            // テーブル存在チェック
             progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' の存在を確認しています...");
             
             var tableExists = await CheckTableExistsAsync(conn, schemaName, tableName);
@@ -287,49 +294,74 @@ public class DatabaseService
                 return;
             }
 
-            // 2. ファイル存在チェック
+            // ファイル存在チェック
             if (!File.Exists(csvPath))
             {
                 progress?.Report($"[エラー] CSVファイル '{csvPath}' が存在しません。");
                 throw new FileNotFoundException($"CSVファイル '{csvPath}' が見つかりません。");
             }
-
+            
+            // TRUNCATE（オプション）
             progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' をクリアしています...");
-
-            // 3. TRUNCATE
+                
             try
             {
-                var truncateSql = $"TRUNCATE TABLE {schemaName}.{tableName}";
-                await using var truncateCmd = new NpgsqlCommand(truncateSql, conn);
+                await using var truncateCmd = new NpgsqlCommand($"TRUNCATE TABLE {schemaName}.{tableName}", conn);
                 await truncateCmd.ExecuteNonQueryAsync();
             }
-            catch (PostgresException ex) when (ex.SqlState == "42P01") // テーブルが存在しないエラー
+            catch (Exception ex)
             {
-                progress?.Report($"[警告] テーブル '{schemaName}.{tableName}' が既に削除されています。インポートをスキップします。");
-                return;
+                progress?.Report($"[警告] テーブルクリアに失敗しましたが続行します: {ex.Message}");
             }
 
             progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' にデータをインポートしています...");
 
-            // 4. COPY
-            var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (FORMAT CSV, HEADER true)";
+            // COPY コマンドでインポート
+            var copySql = $"COPY {schemaName}.{tableName} FROM STDIN WITH (" +
+                         $"FORMAT CSV, " +
+                         $"HEADER true, " +
+                         $"DELIMITER ',', " +
+                         $"QUOTE '\"', " +
+                         $"ESCAPE '\"', " +
+                         $"ENCODING 'UTF8'" +
+                         $")";
+            
+            long importedRows = 0;
+            var stopwatch = Stopwatch.StartNew();
             
             try
             {
+                // 方法1: テキストインポートを使用（シンプルで確実）
                 await using (var writer = conn.BeginTextImport(copySql))
                 {
-                    using var reader = new StreamReader(csvPath, Encoding.UTF8);
+                    using var fileStream = File.OpenRead(csvPath);
+                    using var reader = new StreamReader(fileStream, Encoding.UTF8);
                     
-                    // ファイル全体をストリームとしてコピー
-                    string content = await reader.ReadToEndAsync();
-                    await writer.WriteAsync(content);
+                    // ファイル全体をストリーミングでコピー
+                    char[] buffer = new char[8192];
+                    int charsRead;
+                    
+                    while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        await writer.WriteAsync(buffer, 0, charsRead);
+                        
+                        // 進捗報告（おおよそ）
+                        importedRows += buffer.Count(c => c == '\n');
+                        if (importedRows % 10000 == 0)
+                        {
+                            progress?.Report($"[処理中] 約 {importedRows:N0} 行を処理しました...");
+                        }
+                    }
                 }
                 
+                stopwatch.Stop();
                 progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のインポートが完了しました。");
+                progress?.Report($"[情報] 処理時間: {stopwatch.Elapsed.TotalSeconds:F2} 秒");
             }
             catch (PostgresException ex) when (ex.SqlState == "42P01") // テーブルが存在しないエラー
             {
                 progress?.Report($"[警告] インポート中にテーブル '{schemaName}.{tableName}' が削除されました。");
+                throw;
             }
         }
         catch (Exception ex)

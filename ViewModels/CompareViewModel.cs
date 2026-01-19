@@ -225,6 +225,12 @@ public partial class CompareViewModel : ViewModelBase
             IsProcessing = true;
             _mainViewModel.AppendLog($"[処理中] {allFiles.Count} 個の CSV ファイルの比較を開始しています...", LogLevel.Info);
             ProgressValue = 0;
+
+            if (IsFileLocked(ExportFilePath))
+            {
+                _mainViewModel.AppendLog("Excel ファイルは LOCK していますので、チェックしてください...", LogLevel.Error);
+                return;
+            }
             
             await Task.Run(async () => {
 
@@ -374,6 +380,34 @@ public partial class CompareViewModel : ViewModelBase
         {
             IsProcessing = false;
             ProgressValue = 0;
+        }
+    }
+    
+    // 辅助方法：检查文件是否被锁定
+    private bool IsFileLocked(string filePath)
+    {
+        try
+        {
+            // 如果文件不存在，肯定没有被锁定
+            if (!File.Exists(filePath))
+                return false;
+            
+            // 尝试以读写方式打开文件，如果成功则说明没有被锁定
+            using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                // 文件没有被锁定
+                return false;
+            }
+        }
+        catch (IOException)
+        {
+            // 文件被锁定或其他IO错误
+            return true;
+        }
+        catch (Exception)
+        {
+            // 其他异常
+            return true;
         }
     }
 

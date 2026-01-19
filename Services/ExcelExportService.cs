@@ -42,10 +42,10 @@ public class ExcelExportService
             ConnectionString = connectionString
         };
 
-        string database = builder.ContainsKey("database") ? builder["database"].ToString() : null;
+        string database = builder.ContainsKey("username") ? builder["username"].ToString() : null;
 
         Console.WriteLine(database);
-        worksheet.Cell(3, 1).Value = database ?? "データベース名取得失敗";
+        worksheet.Cell(3, 1).Value = database.Split("_").Length > 1 ? database.Split("_")[0] :"データベース名取得失敗";
         worksheet.Cell(3, 1).Style.Font.Bold = true;
         
         int currentRow = 5;
@@ -93,7 +93,8 @@ public class ExcelExportService
                     allColumns.Add(key);
             }
 
-            var columns = allColumns.OrderBy(c => c).ToList();
+            // var columns = allColumns.OrderBy(c => c).ToList();
+            var columns = allColumns;
             int headerStartCol = 3;
 
             // ========== 現行システム ==========
@@ -723,8 +724,8 @@ public class ExcelExportService
             currentRow += 2; // 表之间的空行
         }
 
-        // 设置整个工作表的默认字体为MS PGothic
-        worksheet.Style.Font.SetFontName("MS PGothic");
+        // 设置整个工作表的默认字体为ＭＳ ゴシック
+        worksheet.Style.Font.SetFontName("ＭＳ ゴシック");
         
         // 设置第一列宽度为5，其余列自适应
         worksheet.Column("A").Width = 8.38;
