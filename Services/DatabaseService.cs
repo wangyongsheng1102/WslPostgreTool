@@ -2,6 +2,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -22,6 +23,19 @@ public class DatabaseService
     /// </summary>
     public async Task<List<TableInfo>> GetTablesAsync(string connectionString)
     {
+        var builder = new DbConnectionStringBuilder
+        {
+            ConnectionString = connectionString
+        };
+
+        string database = builder.ContainsKey("username") ? builder["username"].ToString() : null;
+        
+        string schema = "public";
+        if (database.StartsWith("cis"))
+        {
+            schema = "unisys";
+        }
+        
         var tables = new List<TableInfo>();
 
         await using var conn = new NpgsqlConnection(connectionString);
@@ -37,9 +51,11 @@ public class DatabaseService
         FROM information_schema.tables t
         WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
           AND table_type = 'BASE TABLE'
+          AND table_schema = @schema
         ORDER BY table_schema, table_name";
 
         await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("schema", schema);
         await using var reader = await cmd.ExecuteReaderAsync();
 
         // 先读取所有表到临时列表

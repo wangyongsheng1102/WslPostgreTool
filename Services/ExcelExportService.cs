@@ -727,13 +727,15 @@ public class ExcelExportService
         // 设置整个工作表的默认字体为ＭＳ ゴシック
         worksheet.Style.Font.SetFontName("ＭＳ ゴシック");
         
-        // 设置第一列宽度为5，其余列自适应
+        // workbook.SaveAs(filePath);
+        
+        // 先自适应所有列
+        worksheet.Columns().AdjustToContents();
+
+        // 再单独设置第一列宽度（这会覆盖自适应的结果）
         worksheet.Column("A").Width = 8.38;
-        worksheet.Column("B").Width = 8.38;
-        if (worksheet.LastColumnUsed() != null)
-        {
-            worksheet.Columns(2, worksheet.LastColumnUsed().ColumnNumber()).AdjustToContents();
-        }
+        worksheet.Column("B").Width = 30;
+        
         workbook.SaveAs(filePath);
     }
 
