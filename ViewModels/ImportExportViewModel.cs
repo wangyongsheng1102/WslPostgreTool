@@ -144,7 +144,8 @@ public partial class ImportExportViewModel : ViewModelBase
 
             foreach (var table in selectedTables)
             {
-                var csvPath = Path.Combine(exportDir, $"{table.SchemaName}.{table.TableName}.csv");
+                // 文件名不再包含 schema，只使用表名
+                var csvPath = Path.Combine(exportDir, $"{table.TableName}.csv");
                 await _databaseService.ExportTableToCsvAsync(
                     connectionString,
                     table.SchemaName,
@@ -243,30 +244,13 @@ public partial class ImportExportViewModel : ViewModelBase
             var connectionString = SelectedConnection.GetConnectionString();
             int completed = 0;
 
+            // 根据 username 确定 schema
+            string schemaName = GetSchemaFromUsername(SelectedConnection.User);
+            
             foreach (var csvFile in csvFiles)
             {
-                var fileName = Path.GetFileNameWithoutExtension(csvFile);
-                // テーブル名を推測（スキーマ名が含まれている場合は分割）
-                string schemaName, tableName;
-                if (fileName.Contains("."))
-                {
-                    var parts = fileName.Split('.');
-                    if (parts.Length == 2)
-                    {
-                        schemaName = parts[0];
-                        tableName = parts[1];
-                    }
-                    else
-                    {
-                        schemaName = "public";
-                        tableName = fileName;
-                    }
-                }
-                else
-                {
-                    schemaName = "public";
-                    tableName = fileName;
-                }
+                // 文件名不再包含 schema，直接使用文件名作为表名
+                var tableName = Path.GetFileNameWithoutExtension(csvFile);
 
                 _mainViewModel.AppendLog($"[処理中] {csvFile} をインポートしています...", LogLevel.Info);
                 
@@ -292,5 +276,29 @@ public partial class ImportExportViewModel : ViewModelBase
             IsProcessing = false;
             ProgressValue = 0;
         }
+    }
+    
+    /// <summary>
+    /// 根据 username 确定 schema
+    /// </summary>
+    private static string GetSchemaFromUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "public";
+            
+        if (username.StartsWith("cis", StringComparison.OrdinalIgnoreCase))
+        {
+            return "unisys";
+        }
+        else if (username.StartsWith("order", StringComparison.OrdinalIgnoreCase))
+        {
+            return "public";
+        }
+        else if (username.StartsWith("portal", StringComparison.OrdinalIgnoreCase))
+        {
+            return "public";
+        }
+        
+        return "public";
     }
 }

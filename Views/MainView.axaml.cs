@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Specialized;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -11,42 +12,67 @@ public partial class MainView : Window
 {
     
     private bool _shouldAutoScroll = true;
+    private VersionHistoryWindow? _versionHistoryWindow;
+    private AuthorInfoWindow? _authorInfoWindow;
     
     public MainView()
     {
         InitializeComponent();
         DataContext = new MainViewModel();
         
-        
-        // TODO 优化改进可
-        // 监听 ItemsControl 的布局更新
-        if (this.FindControl<Grid>("LogGrid") is Grid grid)
+        // 设置 DataContext 后，初始化日志滚动逻辑
+        if (DataContext is MainViewModel viewModel)
         {
-            grid.LayoutUpdated += (s, e) =>
+            // 监听 LogMessages 集合变化
+            viewModel.LogMessages.CollectionChanged += (s, e) =>
             {
-                if (!_shouldAutoScroll) return;
-                
-                if (this.FindControl<ScrollViewer>("LogScrollViewer") is ScrollViewer scrollViewer)
+                if (e.Action == NotifyCollectionChangedAction.Add && _shouldAutoScroll)
                 {
-                    scrollViewer.ScrollToEnd();
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (LogScrollViewer != null)
+                        {
+                            LogScrollViewer.ScrollToEnd();
+                        }
+                    }, DispatcherPriority.Background);
+                }
+            };
+            
+            // 订阅 RequestScrollToBottom 事件（作为备用机制）
+            viewModel.RequestScrollToBottom += () =>
+            {
+                if (_shouldAutoScroll && LogScrollViewer != null)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        LogScrollViewer.ScrollToEnd();
+                    }, DispatcherPriority.Background);
                 }
             };
         }
-        
         
         // 监听用户滚动
         if (this.FindControl<ScrollViewer>("LogScrollViewer") is ScrollViewer scrollViewer)
         {
             scrollViewer.ScrollChanged += (s, e) =>
             {
-                // 当用户手动向上滚动时，停止自动滚动
-                var isAtBottom = scrollViewer.Offset.Y >= 
-                                 scrollViewer.Extent.Height - scrollViewer.Viewport.Height - 1;
-                _shouldAutoScroll = isAtBottom;
+                // 检测是否接近底部（允许 5 像素的误差）
+                var scrollOffset = scrollViewer.Offset.Y;
+                var maxScroll = scrollViewer.Extent.Height - scrollViewer.Viewport.Height;
+                var isAtBottom = scrollOffset >= maxScroll - 5;
+                
+                // 如果用户滚动到底部，恢复自动滚动
+                if (isAtBottom)
+                {
+                    _shouldAutoScroll = true;
+                }
+                // 如果用户向上滚动，暂停自动滚动
+                else if (scrollOffset < maxScroll - 10)
+                {
+                    _shouldAutoScroll = false;
+                }
             };
         }
-        
-        
     }
     
     private void OnItemPointerPressed(object sender, PointerPressedEventArgs e)
@@ -67,13 +93,66 @@ public partial class MainView : Window
     
     private void VersionTextBlock_PointerPressed(object sender, PointerPressedEventArgs e)
     {
-        var versionWindow = new VersionHistoryWindow();
-        versionWindow.Show();
+        // 如果窗口已经打开，则显示它；否则创建新窗口
+        if (_versionHistoryWindow != null)
+        {
+            try
+            {
+                _versionHistoryWindow.Activate();
+                _versionHistoryWindow.BringIntoView();
+            }
+            catch
+            {
+                // 如果窗口已关闭，创建新窗口
+                _versionHistoryWindow = new VersionHistoryWindow();
+                _versionHistoryWindow.Closed += (s, args) =>
+                {
+                    _versionHistoryWindow = null;
+                };
+                _versionHistoryWindow.Show();
+            }
+        }
+        else
+        {
+            _versionHistoryWindow = new VersionHistoryWindow();
+            _versionHistoryWindow.Closed += (s, args) =>
+            {
+                _versionHistoryWindow = null;
+            };
+            _versionHistoryWindow.Show();
+        }
     }
+    
     private void AuthorTextBlock_PointerPressed(object sender, PointerPressedEventArgs e)
     {
-        var authorInfoWindow = new AuthorInfoWindow();
-        authorInfoWindow.Show();
+        // 如果窗口已经打开，则显示它；否则创建新窗口
+        if (_authorInfoWindow != null)
+        {
+            try
+            {
+                _authorInfoWindow.Activate();
+                _authorInfoWindow.BringIntoView();
+            }
+            catch
+            {
+                // 如果窗口已关闭，创建新窗口
+                _authorInfoWindow = new AuthorInfoWindow();
+                _authorInfoWindow.Closed += (s, args) =>
+                {
+                    _authorInfoWindow = null;
+                };
+                _authorInfoWindow.Show();
+            }
+        }
+        else
+        {
+            _authorInfoWindow = new AuthorInfoWindow();
+            _authorInfoWindow.Closed += (s, args) =>
+            {
+                _authorInfoWindow = null;
+            };
+            _authorInfoWindow.Show();
+        }
     }
     
     private void ConnectionsCount_PointerPressed(object sender, PointerPressedEventArgs e)

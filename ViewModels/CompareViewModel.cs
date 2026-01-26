@@ -261,21 +261,10 @@ public partial class CompareViewModel : ViewModelBase
                         continue;
                     }
 
-                    // CSVファイル名からテーブル名を推測（schema.table.csv 形式）
-                    var fileNameWithoutExt = Path.GetFileNameWithoutExtension(csvFileName);
-                    var parts = fileNameWithoutExt.Split('.');
-                    string schemaName, tableName;
-
-                    if (parts.Length >= 2)
-                    {
-                        schemaName = parts[0];
-                        tableName = string.Join(".", parts.Skip(1));
-                    }
-                    else
-                    {
-                        schemaName = "public";
-                        tableName = fileNameWithoutExt;
-                    }
+                    // 文件名不再包含 schema，直接使用文件名作为表名
+                    // 根据 username 确定 schema
+                    var tableName = Path.GetFileNameWithoutExtension(csvFileName);
+                    string schemaName = GetSchemaFromUsername(SelectedConnection.User);
 
                     // データベースから主キーを取得（失敗した場合はnullを返す）
                     List<string>? primaryKeys = null;
@@ -453,5 +442,29 @@ public partial class CompareViewModel : ViewModelBase
                 ExportFilePath = result;
             }
         }
+    }
+    
+    /// <summary>
+    /// 根据 username 确定 schema
+    /// </summary>
+    private static string GetSchemaFromUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "public";
+            
+        if (username.StartsWith("cis", StringComparison.OrdinalIgnoreCase))
+        {
+            return "unisys";
+        }
+        else if (username.StartsWith("order", StringComparison.OrdinalIgnoreCase))
+        {
+            return "public";
+        }
+        else if (username.StartsWith("portal", StringComparison.OrdinalIgnoreCase))
+        {
+            return "public";
+        }
+        
+        return "public";
     }
 }
