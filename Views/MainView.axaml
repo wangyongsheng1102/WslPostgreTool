@@ -893,6 +893,15 @@
                             FontSize="12"
                             Classes="secondary"
                             HorizontalContentAlignment="Center"/>
+                    
+                    <!-- 添加跳转到最新日志按钮 -->
+                    <Button Content="⬇️ 最新へ"
+                            Click="ScrollToBottomButton_Click"
+                            Margin="10,0,0,0"
+                            Padding="0,0,0,0"
+                            FontSize="12"
+                            Classes="secondary"
+                            HorizontalContentAlignment="Center"/>
                 </StackPanel>
                 <!-- 修改 ScrollViewer 内容为 ItemsControl -->
                 <ScrollViewer Grid.Row="1" x:Name="LogScrollViewer"

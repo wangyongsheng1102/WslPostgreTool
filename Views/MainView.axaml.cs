@@ -2,6 +2,7 @@ using System;
 using System.Collections.Specialized;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using WslPostgreTool.Models;
 using WslPostgreTool.ViewModels;
@@ -168,6 +169,17 @@ public partial class MainView : Window
         }
     
         e.Handled = true;
+    }
+    
+    private void ScrollToBottomButton_Click(object? sender, RoutedEventArgs e)
+    {
+        // 跳转到最新日志
+        if (LogScrollViewer != null)
+        {
+            LogScrollViewer.ScrollToEnd();
+            // 恢复自动滚动
+            _shouldAutoScroll = true;
+        }
     }
 }
 
