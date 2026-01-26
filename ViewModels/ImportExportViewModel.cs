@@ -247,13 +247,20 @@ public partial class ImportExportViewModel : ViewModelBase
             {
                 var fileName = Path.GetFileNameWithoutExtension(csvFile);
                 // テーブル名を推測（スキーマ名が含まれている場合は分割）
-                var parts = fileName.Split('.');
                 string schemaName, tableName;
-                
-                if (parts.Length == 2)
+                if (fileName.Contains("."))
                 {
-                    schemaName = parts[0];
-                    tableName = parts[1];
+                    var parts = fileName.Split('.');
+                    if (parts.Length == 2)
+                    {
+                        schemaName = parts[0];
+                        tableName = parts[1];
+                    }
+                    else
+                    {
+                        schemaName = "public";
+                        tableName = fileName;
+                    }
                 }
                 else
                 {

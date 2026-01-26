@@ -299,6 +299,21 @@ public class DatabaseService
         {
             await using var conn = new NpgsqlConnection(connectionString);
             await conn.OpenAsync();
+            
+            var builder = new DbConnectionStringBuilder
+            {
+                ConnectionString = connectionString
+            };
+            
+            string database = builder.ContainsKey("username") ? builder["username"].ToString() : null;
+        
+            string schema = "public";
+            if (database.StartsWith("cis"))
+            {
+                schema = "unisys";
+            }
+
+            schemaName = schema;
 
             // テーブル存在チェック
             progress?.Report($"[処理中] テーブル '{schemaName}.{tableName}' の存在を確認しています...");

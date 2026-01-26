@@ -241,9 +241,9 @@ public partial class CompareViewModel : ViewModelBase
 
                 foreach (var csvFileInfo in allFiles)
                 {
-                    if (AccessLogChecked && csvFileInfo.FileName.Contains("access_log.csv", StringComparison.OrdinalIgnoreCase))
+                    if (!AccessLogChecked && csvFileInfo.FileName.Contains("access_log.csv", StringComparison.OrdinalIgnoreCase))
                     {
-                        _mainViewModel.AppendLog($"[スキップ] access_log.csv の比較はスキップされました。", LogLevel.Info);
+                        _mainViewModel.AppendLog($"[スキップ] access_log.csv の比較はスキップされました。", LogLevel.Warning);
                         completed++;
                         ProgressValue = (completed * 200) / (allFiles.Count * 2);
                         continue;
