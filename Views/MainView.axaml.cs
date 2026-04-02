@@ -182,4 +182,3 @@ public partial class MainView : Window
         }
     }
 }
-

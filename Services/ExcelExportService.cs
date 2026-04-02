@@ -803,7 +803,7 @@ public class ExcelExportService
         status switch
         {
             ComparisonStatus.Deleted => "削除前",
-            ComparisonStatus.Added => "追加前",
+            ComparisonStatus.Added => "登録前",
             ComparisonStatus.Updated => "更新前",
             _ => "更新前"
         };
@@ -812,7 +812,7 @@ public class ExcelExportService
         status switch
         {
             ComparisonStatus.Deleted => "削除後",
-            ComparisonStatus.Added => "追加後",
+            ComparisonStatus.Added => "登録後",
             ComparisonStatus.Updated => "更新後",
             _ => "更新後"
         };

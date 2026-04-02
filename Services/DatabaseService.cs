@@ -19,29 +19,37 @@ namespace WslPostgreTool.Services;
 public class DatabaseService
 {
     /// <summary>
-    /// テーブルリストを取得
+    /// データベース内のスキーマ一覧を取得（pg_catalog, information_schema を除く）
     /// </summary>
-    public async Task<List<TableInfo>> GetTablesAsync(string connectionString)
+    public async Task<List<string>> GetSchemasAsync(string connectionString)
     {
-        var builder = new DbConnectionStringBuilder
-        {
-            ConnectionString = connectionString
-        };
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
 
-        string database = builder.ContainsKey("username") ? builder["username"].ToString() : null;
-        
-        string schema = "public";
-        if (database.StartsWith("cis"))
-        {
-            schema = "unisys";
-        }
-        
+        const string sql = @"
+            SELECT schema_name
+            FROM information_schema.schemata
+            WHERE schema_name NOT IN ('pg_catalog', 'information_schema')
+            ORDER BY schema_name";
+
+        var list = new List<string>();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            list.Add(reader.GetString(0));
+        return list;
+    }
+
+    /// <summary>
+    /// テーブルリストを取得（指定スキーマ内）
+    /// </summary>
+    public async Task<List<TableInfo>> GetTablesAsync(string connectionString, string schemaName)
+    {
         var tables = new List<TableInfo>();
 
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
 
-        // 第一步：获取所有表的基本信息
         const string sql = @"
         SELECT 
             table_schema,
@@ -55,7 +63,7 @@ public class DatabaseService
         ORDER BY table_schema, table_name";
 
         await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("schema", schema);
+        cmd.Parameters.AddWithValue("schema", schemaName);
         await using var reader = await cmd.ExecuteReaderAsync();
 
         // 先读取所有表到临时列表
@@ -70,18 +78,18 @@ public class DatabaseService
         await reader.CloseAsync();
 
         // 第二步：为每个表获取行数
-        foreach (var (schemaName, tableName) in tableList)
+        foreach (var (schema, table) in tableList)
         {
             try
             {
-                var countSql = $"SELECT COUNT(*) FROM \"{schemaName}\".\"{tableName}\"";
+                var countSql = $"SELECT COUNT(*) FROM \"{schema}\".\"{table}\"";
                 await using var countCmd = new NpgsqlCommand(countSql, conn);
                 var rowCount = Convert.ToInt64(await countCmd.ExecuteScalarAsync());
 
                 tables.Add(new TableInfo
                 {
-                    SchemaName = schemaName,
-                    TableName = tableName,
+                    SchemaName = schema,
+                    TableName = table,
                     RowCount = rowCount
                 });
             }
@@ -90,8 +98,8 @@ public class DatabaseService
                 // 如果无法获取行数，添加一个默认值
                 tables.Add(new TableInfo
                 {
-                    SchemaName = schemaName,
-                    TableName = tableName,
+                    SchemaName = schema,
+                    TableName = table,
                     RowCount = -1,
                     // Error = ex.Message
                 });
@@ -293,7 +301,10 @@ public class DatabaseService
     //     progress?.Report($"[完了] テーブル '{schemaName}.{tableName}' のインポートが完了しました。");
     // }
     
-    public async Task ImportTableFromCsvAsync(string connectionString, string schemaName, string tableName, string csvPath, IProgress<string>? progress = null)
+    /// <summary>
+    /// 导入结果：Success 成功，Skipped 跳过（如表不存在），异常由调用方 catch 计为失败。
+    /// </summary>
+    public async Task<(bool Success, bool Skipped)> ImportTableFromCsvAsync(string connectionString, string schemaName, string tableName, string csvPath, IProgress<string>? progress = null)
     {
         try
         {
@@ -309,7 +320,7 @@ public class DatabaseService
             if (!tableExists)
             {
                 progress?.Report($"[スキップ] テーブル '{schemaName}.{tableName}' は存在しません。インポートをスキップします。");
-                return;
+                return (false, true);
             }
 
             // ファイル存在チェック
@@ -381,6 +392,8 @@ public class DatabaseService
                 progress?.Report($"[警告] インポート中にテーブル '{schemaName}.{tableName}' が削除されました。");
                 throw;
             }
+
+            return (true, false);
         }
         catch (Exception ex)
         {
@@ -540,4 +553,3 @@ public class DatabaseService
         return values;
     }
 }
-

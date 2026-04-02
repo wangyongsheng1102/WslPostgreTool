@@ -71,13 +71,38 @@ namespace WslPostgreTool.ViewModels
                 // }
                 new VersionInfo
                 {
+                    Version = "1.0.2",
+                    Title = "機能修正",
+                    ReleaseDate = new DateTime(2026, 3, 20),
+                    Description = "• CSV比較：フィールド内改行の正しい読み取り\n" +
+                                  "• CSV 比較処理にCsvHelperを導入し、標準CSV規則にしたがってレコード単位で読み込み\n" +
+                                  "• 大きいなテキスト列など、ダブルクォート内の改行による「列ずれ」「列数不一致」を回避\n" +
+                                  "• 既存の主キー比較ハッシュ計算バッチ処理の流れは維持",
+                    UpdateType = "機能改善",
+                    UpdateTypeColor = Brushes.OrangeRed
+                },
+                new VersionInfo
+                {
+                    Version = "1.0.1",
+                    Title = "機能追加",
+                    ReleaseDate = new DateTime(2026, 2, 25),
+                    Description = "• インポート・エクスポートタブにスキーマComboBoxを追加しました。\n" +
+                                  "• 接続するデータベースを選択すると、利用可能なスキーマ名が自動的に表示されます。\n" +
+                                  "• 対応するスキーマを選択すると、エクスポートおよびインポートはすべてそのスキーマを基準として実行されます。\n" +
+                                  "• メッセージの改善",
+                    UpdateType = "機能改善",
+                    UpdateTypeColor = Brushes.Blue
+                },
+                new VersionInfo
+                {
                     Version = "1.0.0",
                     Title = "新版作成",
                     ReleaseDate = new DateTime(2026, 1, 12),
                     Description = "• 機能新規作成\n• 基本的なUI設計\n• 初期リリースバージョン",
                     UpdateType = "新版作成",
                     UpdateTypeColor = Brushes.BlueViolet
-                }
+                },
+                
             };
             
             // 最新バージョン情報を設定

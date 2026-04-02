@@ -12,7 +12,7 @@ namespace WslPostgreTool.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     [ObservableProperty]
-    private string _appVersion = "1.0.0";
+    private string _appVersion = "1.0.2";
     [ObservableProperty]
     private string _appAuthor = "wangys";
     

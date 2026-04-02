@@ -2,11 +2,14 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using CsvHelper;
+using CsvHelper.Configuration;
 using WslPostgreTool.Models;
 
 namespace WslPostgreTool.Services;
@@ -17,6 +20,52 @@ namespace WslPostgreTool.Services;
 public class CsvCompareService
 {
     private const int BatchSize = 10000;
+
+    private static CsvConfiguration CreateCsvConfiguration()
+    {
+        // 避免“按物理行读取”导致的错行：字段内含换行符时，必须依赖 CSV 解析器把记录拼回去。
+        return new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            DetectDelimiter = false,
+            Delimiter = ",",
+            IgnoreBlankLines = true,
+            TrimOptions = TrimOptions.None,
+            BadDataFound = null,
+            MissingFieldFound = null,
+        };
+    }
+
+    private static async Task<long> CountCsvDataRecordsAsync(string csvPath)
+    {
+        var config = CreateCsvConfiguration();
+
+        await using var stream = File.OpenRead(csvPath);
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        using var csv = new CsvReader(reader, config);
+
+        if (!await csv.ReadAsync())
+        {
+            return 0;
+        }
+
+        csv.ReadHeader();
+        var headers = csv.HeaderRecord ?? Array.Empty<string>();
+
+        long count = 0;
+        while (await csv.ReadAsync())
+        {
+            var record = csv.Parser.Record;
+            if (record == null || record.Length != headers.Length)
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
 
     /// <summary>
     /// 2つのCSVファイルを比較（主キーはデータベースから取得、主キーがない場合は整行比較）
@@ -134,19 +183,29 @@ public class CsvCompareService
             return data;
         }
 
-        var lines = await File.ReadAllLinesAsync(csvPath, Encoding.UTF8);
-        if (lines.Length == 0)
-        {
-            return data;
-        }
-
-        // ヘッダー行を解析
-        var headers = ParseCsvLine(lines[0]);
-        var totalRows = lines.Length - 1; // ヘッダーを除く
+        var config = CreateCsvConfiguration();
+        var totalRows = await CountCsvDataRecordsAsync(csvPath);
         var processedRows = 0L;
 
         List<int> primaryKeyIndices;
         List<int> nonPrimaryKeyIndices;
+
+        await using var stream = File.OpenRead(csvPath);
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        using var csv = new CsvReader(reader, config);
+
+        if (!await csv.ReadAsync())
+        {
+            return data;
+        }
+
+        csv.ReadHeader();
+        var headers = (csv.HeaderRecord ?? Array.Empty<string>()).ToList();
+
+        if (headers.Count == 0)
+        {
+            return data;
+        }
 
         if (useFullRowComparison)
         {
@@ -176,22 +235,19 @@ public class CsvCompareService
 
         var batch = new List<(Dictionary<string, object?> pk, Dictionary<string, object?> values, long hash)>();
 
-        // データ行を処理
-        for (int rowIndex = 1; rowIndex < lines.Length; rowIndex++)
+        // データ行を処理（字段内换行符也会被 CsvHelper 正确拼成同一条记录）
+        while (await csv.ReadAsync())
         {
-            var line = lines[rowIndex];
-            if (string.IsNullOrWhiteSpace(line)) continue;
-
-            var values = ParseCsvLine(line);
-            if (values.Count != headers.Count) continue; // 列数が一致しない場合はスキップ
+            var record = csv.Parser.Record;
+            if (record == null || record.Length != headers.Count) continue; // 列数が一致しない場合はスキップ
 
             // 主キー値を取得
             var primaryKeyValues = new Dictionary<string, object?>();
             foreach (var idx in primaryKeyIndices)
             {
                 var colName = headers[idx];
-                var value = idx < values.Count ? values[idx] : null;
-                primaryKeyValues[colName] = string.IsNullOrEmpty(value) ? null : value;
+                var rawValue = csv.GetField<string>(idx);
+                primaryKeyValues[colName] = string.IsNullOrEmpty(rawValue) ? null : rawValue;
             }
 
             // 非主キー列の値を取得してハッシュ計算
@@ -204,9 +260,10 @@ public class CsvCompareService
                 foreach (var idx in primaryKeyIndices)
                 {
                     var colName = headers[idx];
-                    var value = idx < values.Count ? values[idx] : null;
-                    nonPkValues[colName] = string.IsNullOrEmpty(value) ? null : value;
-                    
+                    var rawValue = csv.GetField<string>(idx);
+                    var value = string.IsNullOrEmpty(rawValue) ? null : rawValue;
+                    nonPkValues[colName] = value;
+
                     hashBuilder.Append(colName).Append('=');
                     hashBuilder.Append(value ?? "NULL").Append('|');
                 }
@@ -216,9 +273,10 @@ public class CsvCompareService
                 foreach (var idx in nonPrimaryKeyIndices)
                 {
                     var colName = headers[idx];
-                    var value = idx < values.Count ? values[idx] : null;
-                    nonPkValues[colName] = string.IsNullOrEmpty(value) ? null : value;
-                    
+                    var rawValue = csv.GetField<string>(idx);
+                    var value = string.IsNullOrEmpty(rawValue) ? null : rawValue;
+                    nonPkValues[colName] = value;
+
                     hashBuilder.Append(colName).Append('=');
                     hashBuilder.Append(value ?? "NULL").Append('|');
                 }
@@ -236,7 +294,7 @@ public class CsvCompareService
             {
                 ProcessBatch(batch, data);
                 batch.Clear();
-                
+
                 var percentage = totalRows > 0 ? (int)(processedRows * 100 / totalRows) : 0;
                 progress?.Report((percentage, 100, $"[{label}] {processedRows}/{totalRows} 行を処理しました ({percentage}%)"));
             }
@@ -259,42 +317,6 @@ public class CsvCompareService
         {
             data[pk] = new RowData { Values = values, Hash = hash };
         }
-    }
-
-    private static List<string> ParseCsvLine(string line)
-    {
-        var values = new List<string>();
-        var current = new StringBuilder();
-        bool inQuotes = false;
-
-        foreach (var c in line)
-        {
-            if (c == '"')
-            {
-                if (inQuotes && current.Length > 0 && current[current.Length - 1] == '"')
-                {
-                    // エスケープされた引用符
-                    current.Length--;
-                    current.Append('"');
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                values.Add(current.ToString());
-                current.Clear();
-            }
-            else
-            {
-                current.Append(c);
-            }
-        }
-        values.Add(current.ToString());
-
-        return values;
     }
 
     private class RowData

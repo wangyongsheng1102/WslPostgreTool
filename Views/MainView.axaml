@@ -480,11 +480,11 @@
                         <!-- 连接选择 -->
                         <Border Grid.Row="1" Classes="card"
                                 Background="LightCyan">
-                            <Grid RowDefinitions="Auto,Auto">
+                            <Grid RowDefinitions="Auto,Auto,Auto">
                                 <TextBlock Grid.Row="0"
                                            Text="接続選択"
                                            Classes="section-title"/>
-                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
                                     <ComboBox Grid.Column="0"
                                               ItemsSource="{Binding ImportExportViewModel.Connections}"
                                               SelectedItem="{Binding ImportExportViewModel.SelectedConnection}"
@@ -499,6 +499,14 @@
                                             Content="📋 テーブルリストを読み込み"
                                             Command="{Binding ImportExportViewModel.LoadTablesCommand}"
                                             Classes="primary"/>
+                                </Grid>
+                                <Grid Grid.Row="2" RowDefinitions="Auto,Auto">
+                                    <TextBlock Grid.Row="0" Text="スキーマ（エクスポート・インポート共通）"
+                                               FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                                    <ComboBox Grid.Row="1"
+                                              ItemsSource="{Binding ImportExportViewModel.Schemas}"
+                                              SelectedItem="{Binding ImportExportViewModel.SelectedSchema}"
+                                              PlaceholderText="接続を選択すると自動で取得"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -614,9 +622,7 @@
                                         <Grid Grid.Row="1"
                                               Margin="0,0,0,0">
                                             <Grid.ColumnDefinitions>
-                                                <!-- TextBox 占 70% 空间 -->
                                                 <ColumnDefinition Width="7*" />
-                                                <!-- Button 占 30% 空间 -->
                                                 <ColumnDefinition Width="3*" />
                                             </Grid.ColumnDefinitions>
                                             <TextBox Grid.Column="0" 
@@ -624,7 +630,6 @@
                                                      Watermark="インポートフォルダを選択してください"
                                                      Margin="0,0,0,14"
                                                      HorizontalAlignment="Stretch"/>
-                                                     <!-- IsReadOnly="True" -->
                                             <Button Grid.Column="1" 
                                                     Content="📁 選択"
                                                     Command="{Binding ImportExportViewModel.SelectImportFolderCommand}"
@@ -900,7 +905,7 @@
                             Margin="10,0,0,0"
                             Padding="0,0,0,0"
                             FontSize="12"
-                            Classes="secondary"
+                            Classes="danger"
                             HorizontalContentAlignment="Center"/>
                 </StackPanel>
                 <!-- 修改 ScrollViewer 内容为 ItemsControl -->
